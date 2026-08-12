@@ -15,26 +15,22 @@ import repopulse.server.entity.PullRequestEntity;
 import repopulse.server.entity.RepositoryEntity;
 import repopulse.server.repository.PullRequestRepository;
 import repopulse.server.repository.RepositoryRepository;
-import tools.jackson.databind.annotation.JsonSerialize;
 
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
-public class RepositoryService
+public class RepositoryAnalyticsService
 {
     private final GithubApiClient githubClient;
     private final RepositoryRepository repositoryRepository;
     private final PullRequestRepository pullRequestRepository;
 
-    public RepositoryService(GithubApiClient githubClient,
-                             RepositoryRepository repositoryRepository,
-                             PullRequestRepository pullRequestRepository)
+    public RepositoryAnalyticsService(GithubApiClient githubClient,
+                                      RepositoryRepository repositoryRepository,
+                                      PullRequestRepository pullRequestRepository)
     {
         this.githubClient = githubClient;
         this.repositoryRepository = repositoryRepository;
@@ -42,7 +38,7 @@ public class RepositoryService
     }
 
     @Transactional
-    public RepositoryAnalyticsResponse getRepositoryAnalytics(String url)
+    public RepositoryAnalyticsResponse analyzeRepository(String url)
     {
         BaseRepositoryInfo repositoryInfo = parseRepositoryUrl(url);
         String owner = repositoryInfo.owner();
@@ -61,52 +57,44 @@ public class RepositoryService
 
         long createdLast30Days = 0, mergedLast30Days = 0, closedWithoutMergeLast30Days = 0;
 
-        long uniquePullRequestAuthors = 0;
-        List<String> pullRequestAuthors = new ArrayList<>();
+        long uniquePullRequestAuthors;
+        Set<String> pullRequestAuthors = new HashSet<>();
 
         long totalMergeTimeSeconds = 0;
         List<Long> mergeDurationSeconds = new ArrayList<>();
 
-        for (PullRequestEntity pullRequestEntity : pullRequestEntities)
-        {
-            long daysSinceCreation = Duration.between(
-                    pullRequestEntity.getCreatedAt(),
-                    Instant.now()
-            ).toDays();
+        Instant thirtyDaysAgo = Instant.now().minus(Duration.ofDays(30));
 
-            if (daysSinceCreation <= 30)
+        for (PullRequestEntity pullRequestEntity : pullRequestEntities) {
+            pullRequestAuthors.add(pullRequestEntity.getAuthorLogin());
+
+            if (pullRequestEntity.getCreatedAt().isAfter(thirtyDaysAgo))
                 createdLast30Days++;
 
-            if (pullRequestEntity.getState().equals("open"))
-            {
+            if (pullRequestEntity.getState().equals("open")) {
                 openPullRequests++;
                 if (pullRequestEntity.isDraft())
                     openDraftPullRequests++;
 
-                long daysWithoutUpdate = Duration.between(
-                        pullRequestEntity.getUpdatedAt(),
-                        Instant.now()
-                ).toDays();
+                long inactiveDays = Duration.between(pullRequestEntity.getUpdatedAt(), Instant.now()).toDays();
 
-                if (daysWithoutUpdate <= 7)
+                if (inactiveDays <= 7)
                     freshOpenPullRequests++;
-                else if (daysWithoutUpdate <= 30)
+                else if (inactiveDays <= 30)
                     agingOpenPullRequests++;
-                else if (daysWithoutUpdate <= 90)
+                else if (inactiveDays <= 90)
                     staleOpenPullRequests++;
                 else
-                    staleOpenPullRequests++;
+                    veryStaleOpenPullRequests++;
             }
 
-            if (pullRequestEntity.getState().equals("closed"))
-            {
-                if (pullRequestEntity.getMergedAt() != null)
-                {
+            if (pullRequestEntity.getState().equals("closed")) {
+                if (pullRequestEntity.getMergedAt() != null) {
                     mergedPullRequests++;
                     if (pullRequestEntity.isDraft())
                         mergedDraftPullRequests++;
 
-                    if (daysSinceCreation <= 30)
+                    if (pullRequestEntity.getMergedAt().isAfter(thirtyDaysAgo))
                         mergedLast30Days++;
 
                     long mergeTimeSeconds = Duration.between(
@@ -121,37 +109,53 @@ public class RepositoryService
                 }
 
                 closedWithoutMergePullRequests++;
-                if (daysSinceCreation <= 30)
+                if (pullRequestEntity.getClosedAt().isAfter(thirtyDaysAgo))
                     closedWithoutMergeLast30Days++;
             }
-
-            if (!pullRequestAuthors.contains(pullRequestEntity.getAuthorLogin()))
-            {
-                uniquePullRequestAuthors++;
-                pullRequestAuthors.add(pullRequestEntity.getAuthorLogin());
-            }
         }
+
+        List<StalePullRequestResponse> stalestPullRequests = pullRequestEntities
+                .stream()
+                .filter(pr -> pr.getState().equals("open"))
+                .map(pr -> new StalePullRequestResponse(
+                        pr.getNumber(),
+                        pr.getTitle(),
+                        pr.getHtmlUrl(),
+                        pr.getAuthorLogin(),
+                        Duration.between(pr.getUpdatedAt(), Instant.now()).toDays()
+                ))
+                .sorted(Comparator.comparingLong(StalePullRequestResponse::inactiveDays).reversed())
+                .limit(5)
+                .toList();
+
+        uniquePullRequestAuthors = pullRequestAuthors.size();
 
         Double staleOpenPullRequestRatePercent = null;
         Double mergeRatePercent = null, averageMergeTimeHours = null, medianMergeTimeHours = null;
-        if (totalPullRequests > 0)
+        if (openPullRequests > 0)
         {
-            staleOpenPullRequestRatePercent =
-                    (staleOpenPullRequests + veryStaleOpenPullRequests) / (double) openPullRequests;
-
-            long closedPullRequests = mergedPullRequests + closedWithoutMergePullRequests;
-            mergeRatePercent = roundTo((double) mergedPullRequests / closedPullRequests * 100d, 2);
-            averageMergeTimeHours = roundTo(totalMergeTimeSeconds / mergedPullRequests / 3600d, 2);
-            medianMergeTimeHours = roundTo(getMedianMergeTimeHours(mergeDurationSeconds), 2);
+            staleOpenPullRequestRatePercent = roundToHundredths(
+                            (staleOpenPullRequests + veryStaleOpenPullRequests)
+                                    / (double)openPullRequests * 100
+            );
         }
 
-        List<StalePullRequestResponse> stalestPullRequests = getStalestPullRequests(pullRequestEntities);
+        long closedPullRequests = mergedPullRequests + closedWithoutMergePullRequests;
+        if (closedPullRequests > 0)
+            mergeRatePercent = roundToHundredths(mergedPullRequests / (double)closedPullRequests * 100);
+
+        if (mergedPullRequests > 0)
+        {
+            averageMergeTimeHours = roundToHundredths(totalMergeTimeSeconds / mergedPullRequests / 3600d);
+            medianMergeTimeHours = roundToHundredths(getMedianMergeTimeHours(mergeDurationSeconds));
+        }
 
         RepositoryAnalytics analytics = new RepositoryAnalytics(
                 totalPullRequests,
                 openPullRequests,
                 openDraftPullRequests,
                 mergedPullRequests,
+                mergedDraftPullRequests,
                 closedWithoutMergePullRequests,
 
                 mergeRatePercent,
@@ -221,28 +225,6 @@ public class RepositoryService
         return new BaseRepositoryInfo(owner, repositoryName);
     }
 
-    private List<StalePullRequestResponse> getStalestPullRequests(List<PullRequestEntity> pullRequestEntities)
-    {
-        List<StalePullRequestResponse> stalestPullRequests = new ArrayList<>();
-
-        int pullRequestNumber = pullRequestEntities.size();
-        int startIndex = pullRequestNumber > 5 ? pullRequestNumber - 5 : 0;
-        int endIndex = pullRequestNumber - 1;
-
-        for (PullRequestEntity pullRequest : pullRequestEntities.subList(startIndex, endIndex))
-        {
-            stalestPullRequests.add(new StalePullRequestResponse(
-                    pullRequest.getNumber(),
-                    pullRequest.getTitle(),
-                    pullRequest.getHtmlUrl(),
-                    pullRequest.getAuthorLogin(),
-                    Duration.between(pullRequest.getUpdatedAt(), Instant.now()).toDays()
-            ));
-        }
-
-        return stalestPullRequests;
-    }
-
     private double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
     {
         Collections.sort(mergeDurationSeconds);
@@ -290,7 +272,7 @@ public class RepositoryService
 
     private List<PullRequestEntity> loadPullRequests(String owner, String repositoryName, RepositoryEntity repositoryEntity)
     {
-        List<GithubPullRequestResponse> pullRequests = githubClient.getPullRequests(owner, repositoryName, 1);
+        List<GithubPullRequestResponse> pullRequests = githubClient.getAllPullRequests(owner, repositoryName);
         List<PullRequestEntity> pullRequestEntities = new ArrayList<>();
 
         for (GithubPullRequestResponse pullRequest : pullRequests)
@@ -336,9 +318,9 @@ public class RepositoryService
         return pullRequestEntities;
     }
 
-    private Double roundTo(Double number, int places)
+    private Double roundToHundredths(Double number)
     {
-        double scale = Math.pow(10, places);
+        double scale = Math.pow(10, 2);
         return Math.round(number * scale) / scale;
     }
 }

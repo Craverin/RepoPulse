@@ -6,6 +6,7 @@ public record RepositoryAnalytics(long totalPullRequests,
                                   long openPullRequests,
                                   long openDraftPullRequests,
                                   long mergedPullRequests,
+                                  long mergedDraftPullRequests,
                                   long closedWithoutMergePullRequests,
 
                                   Double mergeRatePercent,

@@ -3,22 +3,22 @@ package repopulse.server.controller;
 import org.springframework.web.bind.annotation.*;
 import repopulse.server.dto.AnalyzeRepositoryRequest;
 import repopulse.server.dto.analytics.RepositoryAnalyticsResponse;
-import repopulse.server.service.RepositoryService;
+import repopulse.server.service.RepositoryAnalyticsService;
 
 @RestController
 @RequestMapping("/api/repositories")
 public class RepositoryController
 {
-    private final RepositoryService repositoryService;
+    private final RepositoryAnalyticsService repositoryAnalyticsService;
 
-    public RepositoryController(RepositoryService repositoryService)
+    public RepositoryController(RepositoryAnalyticsService repositoryAnalyticsService)
     {
-        this.repositoryService = repositoryService;
+        this.repositoryAnalyticsService = repositoryAnalyticsService;
     }
 
     @GetMapping("/analyze")
     public RepositoryAnalyticsResponse getRepositoryAnalytics(@RequestBody AnalyzeRepositoryRequest request)
     {
-        return repositoryService.getRepositoryAnalytics(request.repositoryUrl());
+        return repositoryAnalyticsService.analyzeRepository(request.repositoryUrl());
     }
 }
