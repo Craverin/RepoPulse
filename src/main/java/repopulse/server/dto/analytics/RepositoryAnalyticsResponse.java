@@ -7,4 +7,4 @@ public record RepositoryAnalyticsResponse(long repositoryId,
                                           String name,
                                           String htmlUrl,
                                           Instant dataLastSyncedAt,
-                                          RepositoryAnalytics analytics) { }
+                                          PullRequestAnalytics analytics) { }
