@@ -1,15 +1,20 @@
 package repopulse.server.service;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import repopulse.server.analytics.PullRequestAnalyticsCalculator;
+import repopulse.server.analytics.PullRequestTrendsCalculator;
 import repopulse.server.dto.BaseRepositoryInfo;
-import repopulse.server.dto.analytics.PullRequestAnalytics;
-import repopulse.server.dto.analytics.RepositoryAnalyticsResponse;
+import repopulse.server.dto.analytics.pullrequest.PullRequestAnalytics;
+import repopulse.server.dto.analytics.pullrequest.PullRequestMonthlyMetrics;
+import repopulse.server.dto.analytics.repository.RepositoryAnalyticsResponse;
+import repopulse.server.dto.analytics.repository.RepositoryTrendsResponse;
 import repopulse.server.entity.PullRequestEntity;
 import repopulse.server.entity.RepositoryEntity;
 import repopulse.server.repository.PullRequestRepository;
+import repopulse.server.repository.RepositoryRepository;
 
 import java.net.URI;
 import java.util.*;
@@ -18,16 +23,22 @@ import java.util.*;
 public class RepositoryAnalyticsService
 {
     private final RepositorySyncService repositorySyncService;
-    private final PullRequestAnalyticsCalculator pullRequestAnalyticsCalculator;
+    private final PullRequestAnalyticsCalculator analyticsCalculator;
+    private final PullRequestTrendsCalculator trendsCalculator;
+    private final RepositoryRepository repositoryRepository;
     private final PullRequestRepository pullRequestRepository;
 
     public RepositoryAnalyticsService(RepositorySyncService repositorySyncService,
+                                      PullRequestAnalyticsCalculator analyticsCalculator,
+                                      PullRequestTrendsCalculator trendsCalculator,
                                       PullRequestRepository pullRequestRepository,
-                                      PullRequestAnalyticsCalculator pullRequestAnalyticsCalculator)
+                                      RepositoryRepository repositoryRepository)
     {
         this.repositorySyncService = repositorySyncService;
-        this.pullRequestAnalyticsCalculator = pullRequestAnalyticsCalculator;
+        this.analyticsCalculator = analyticsCalculator;
+        this.trendsCalculator = trendsCalculator;
         this.pullRequestRepository = pullRequestRepository;
+        this.repositoryRepository = repositoryRepository;
     }
 
     public RepositoryAnalyticsResponse analyze(String repositoryUrl)
@@ -40,16 +51,14 @@ public class RepositoryAnalyticsService
         return analyze(repositoryUrl, true);
     }
 
-    private RepositoryAnalyticsResponse analyze(String repositoryUrl, boolean forceSync)
+    public RepositoryAnalyticsResponse getAnalytics(long repositoryId)
     {
-        BaseRepositoryInfo repositoryInfo = parseRepositoryUrl(repositoryUrl);
-        String owner = repositoryInfo.owner();
-        String repositoryName = repositoryInfo.name();
+        RepositoryEntity repository = repositoryRepository.findById(repositoryId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Repository does not exist"));
 
-        RepositoryEntity repository = repositorySyncService.sync(owner, repositoryName, forceSync);
-        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repository.getId());
-
-        PullRequestAnalytics analytics = pullRequestAnalyticsCalculator.calculate(pullRequests);
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repositoryId);
+        PullRequestAnalytics analytics = analyticsCalculator.calculate(pullRequests);
 
         return new RepositoryAnalyticsResponse(
                 repository.getId(),
@@ -61,7 +70,29 @@ public class RepositoryAnalyticsService
         );
     }
 
-    public BaseRepositoryInfo parseRepositoryUrl(String repositoryUrl)
+    private RepositoryAnalyticsResponse analyze(String repositoryUrl, boolean forceSync)
+    {
+        BaseRepositoryInfo repositoryInfo = parseRepositoryUrl(repositoryUrl);
+        String owner = repositoryInfo.owner();
+        String repositoryName = repositoryInfo.name();
+
+        RepositoryEntity repository = repositorySyncService.sync(owner, repositoryName, forceSync);
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repository.getId());
+
+        PullRequestAnalytics analytics = analyticsCalculator.calculate(pullRequests);
+
+        return new RepositoryAnalyticsResponse(
+                repository.getId(),
+                repository.getOwner(),
+                repository.getName(),
+                repository.getHtmlUrl(),
+                repository.getLastSyncedAt(),
+                analytics
+        );
+    }
+
+
+    private BaseRepositoryInfo parseRepositoryUrl(String repositoryUrl)
     {
         if (repositoryUrl == null || repositoryUrl.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Repository URL should not be empty");
@@ -100,5 +131,20 @@ public class RepositoryAnalyticsService
         return new BaseRepositoryInfo(owner, repositoryName);
     }
 
+    public RepositoryTrendsResponse getTrends(long repositoryId, int months)
+    {
+        RepositoryEntity repository = repositoryRepository.findById(repositoryId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository does not exist")
+        );
 
+
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repositoryId);
+        List<PullRequestMonthlyMetrics> monthlyMetrics = trendsCalculator.calculate(pullRequests, months);
+
+        return new RepositoryTrendsResponse(
+                repositoryId,
+                repository.getLastSyncedAt(),
+                monthlyMetrics
+        );
+    }
 }

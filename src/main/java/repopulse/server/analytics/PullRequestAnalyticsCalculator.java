@@ -1,8 +1,8 @@
 package repopulse.server.analytics;
 
 import org.springframework.stereotype.Component;
-import repopulse.server.dto.analytics.PullRequestAnalytics;
-import repopulse.server.dto.analytics.StalePullRequest;
+import repopulse.server.dto.analytics.pullrequest.PullRequestAnalytics;
+import repopulse.server.dto.StalePullRequest;
 import repopulse.server.entity.PullRequestEntity;
 
 import java.time.Duration;
@@ -31,13 +31,15 @@ public class PullRequestAnalyticsCalculator
 
         Instant thirtyDaysAgo = Instant.now().minus(Duration.ofDays(30));
 
-        for (PullRequestEntity pullRequestEntity : pullRequests) {
+        for (PullRequestEntity pullRequestEntity : pullRequests)
+        {
             pullRequestAuthors.add(pullRequestEntity.getAuthorLogin());
 
             if (pullRequestEntity.getCreatedAt().isAfter(thirtyDaysAgo))
                 createdLast30Days++;
 
-            if (pullRequestEntity.getState().equals("open")) {
+            if (pullRequestEntity.getState().equals("open"))
+            {
                 openPullRequests++;
                 if (pullRequestEntity.isDraft())
                     openDraftPullRequests++;
@@ -147,7 +149,7 @@ public class PullRequestAnalyticsCalculator
                 .toList();
     }
 
-    private double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
+    public static double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
     {
         Collections.sort(mergeDurationSeconds);
         int size = mergeDurationSeconds.size();
@@ -166,7 +168,7 @@ public class PullRequestAnalyticsCalculator
     }
 
 
-    private Double roundToHundredths(Double number)
+    public static Double roundToHundredths(Double number)
     {
         double scale = Math.pow(10, 2);
         return Math.round(number * scale) / scale;

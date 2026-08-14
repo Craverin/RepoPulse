@@ -1,4 +1,6 @@
-package repopulse.server.dto.analytics;
+package repopulse.server.dto.analytics.pullrequest;
+
+import repopulse.server.dto.StalePullRequest;
 
 import java.util.List;
 
