@@ -88,7 +88,7 @@ public class PullRequestAnalyticsCalculator
         Double mergeRatePercent = null, averageMergeTimeHours = null, medianMergeTimeHours = null;
         if (openPullRequests > 0)
         {
-            staleOpenPullRequestRatePercent = roundToHundredths(
+            staleOpenPullRequestRatePercent = roundToHundredth(
                     (staleOpenPullRequests + veryStaleOpenPullRequests)
                             / (double)openPullRequests * 100
             );
@@ -96,12 +96,12 @@ public class PullRequestAnalyticsCalculator
 
         long closedPullRequests = mergedPullRequests + closedWithoutMergePullRequests;
         if (closedPullRequests > 0)
-            mergeRatePercent = roundToHundredths(mergedPullRequests / (double)closedPullRequests * 100);
+            mergeRatePercent = roundToHundredth(mergedPullRequests / (double)closedPullRequests * 100);
 
         if (mergedPullRequests > 0)
         {
-            averageMergeTimeHours = roundToHundredths(totalMergeTimeSeconds / mergedPullRequests / 3600d);
-            medianMergeTimeHours = roundToHundredths(getMedianMergeTimeHours(mergeDurationSeconds));
+            averageMergeTimeHours = roundToHundredth(totalMergeTimeSeconds / mergedPullRequests / 3600d);
+            medianMergeTimeHours = roundToHundredth(getMedianMergeTimeHours(mergeDurationSeconds));
         }
 
         return new PullRequestAnalytics(
@@ -149,10 +149,13 @@ public class PullRequestAnalyticsCalculator
                 .toList();
     }
 
-    public static double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
+    public static Double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
     {
         Collections.sort(mergeDurationSeconds);
         int size = mergeDurationSeconds.size();
+
+        if (size == 0)
+            return null;
 
         if (size % 2 != 0)
         {
@@ -168,7 +171,7 @@ public class PullRequestAnalyticsCalculator
     }
 
 
-    public static Double roundToHundredths(Double number)
+    public static Double roundToHundredth(Double number)
     {
         double scale = Math.pow(10, 2);
         return Math.round(number * scale) / scale;

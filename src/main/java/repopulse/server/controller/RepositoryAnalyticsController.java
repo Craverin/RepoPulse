@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import repopulse.server.dto.AnalyzeRepositoryRequest;
 import repopulse.server.dto.analytics.repository.RepositoryAnalyticsResponse;
+import repopulse.server.dto.analytics.repository.RepositoryInsightsResponse;
 import repopulse.server.dto.analytics.repository.RepositoryTrendsResponse;
 import repopulse.server.service.RepositoryAnalyticsService;
 
@@ -51,5 +52,14 @@ public class RepositoryAnalyticsController
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Number of months must be greater than 0");
 
         return repositoryAnalyticsService.getTrends(repositoryId, months);
+    }
+
+    @GetMapping("/{repositoryId}/insights")
+    public RepositoryInsightsResponse getPullRequestInsights(@PathVariable Long repositoryId)
+    {
+        if (repositoryId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Repository ID is null");
+
+        return repositoryAnalyticsService.getInsights(repositoryId);
     }
 }

@@ -5,11 +5,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import repopulse.server.analytics.PullRequestAnalyticsCalculator;
+import repopulse.server.analytics.PullRequestInsightGenerator;
+import repopulse.server.analytics.PullRequestPeriodMetricsCalculator;
 import repopulse.server.analytics.PullRequestTrendsCalculator;
 import repopulse.server.dto.BaseRepositoryInfo;
 import repopulse.server.dto.analytics.pullrequest.PullRequestAnalytics;
+import repopulse.server.dto.analytics.pullrequest.PullRequestInsight;
 import repopulse.server.dto.analytics.pullrequest.PullRequestMonthlyMetrics;
+import repopulse.server.dto.analytics.pullrequest.PullRequestPeriodMetrics;
 import repopulse.server.dto.analytics.repository.RepositoryAnalyticsResponse;
+import repopulse.server.dto.analytics.repository.RepositoryInsightsResponse;
 import repopulse.server.dto.analytics.repository.RepositoryTrendsResponse;
 import repopulse.server.entity.PullRequestEntity;
 import repopulse.server.entity.RepositoryEntity;
@@ -17,6 +22,8 @@ import repopulse.server.repository.PullRequestRepository;
 import repopulse.server.repository.RepositoryRepository;
 
 import java.net.URI;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -25,18 +32,24 @@ public class RepositoryAnalyticsService
     private final RepositorySyncService repositorySyncService;
     private final PullRequestAnalyticsCalculator analyticsCalculator;
     private final PullRequestTrendsCalculator trendsCalculator;
+    private final PullRequestPeriodMetricsCalculator periodMetricsCalculator;
+    private final PullRequestInsightGenerator insightGenerator;
     private final RepositoryRepository repositoryRepository;
     private final PullRequestRepository pullRequestRepository;
 
     public RepositoryAnalyticsService(RepositorySyncService repositorySyncService,
                                       PullRequestAnalyticsCalculator analyticsCalculator,
                                       PullRequestTrendsCalculator trendsCalculator,
+                                      PullRequestPeriodMetricsCalculator periodMetricsCalculator,
+                                      PullRequestInsightGenerator insightGenerator,
                                       PullRequestRepository pullRequestRepository,
                                       RepositoryRepository repositoryRepository)
     {
         this.repositorySyncService = repositorySyncService;
         this.analyticsCalculator = analyticsCalculator;
         this.trendsCalculator = trendsCalculator;
+        this.periodMetricsCalculator = periodMetricsCalculator;
+        this.insightGenerator = insightGenerator;
         this.pullRequestRepository = pullRequestRepository;
         this.repositoryRepository = repositoryRepository;
     }
@@ -70,6 +83,55 @@ public class RepositoryAnalyticsService
         );
     }
 
+    public RepositoryTrendsResponse getTrends(long repositoryId, int months)
+    {
+        RepositoryEntity repository = repositoryRepository.findById(repositoryId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository does not exist")
+        );
+
+
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repositoryId);
+        List<PullRequestMonthlyMetrics> monthlyMetrics = trendsCalculator.calculate(pullRequests, months);
+
+        return new RepositoryTrendsResponse(
+                repositoryId,
+                repository.getLastSyncedAt(),
+                monthlyMetrics
+        );
+    }
+
+    public RepositoryInsightsResponse getInsights(long repositoryId)
+    {
+        RepositoryEntity repository = repositoryRepository.findById(repositoryId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository does not exist")
+        );
+
+        Instant now = Instant.now();
+        Instant currentPeriod = now.minus(30,  ChronoUnit.DAYS);
+        Instant previousPeriod = now.minus(60,  ChronoUnit.DAYS);
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repositoryId);
+
+        PullRequestPeriodMetrics currentPeriodMetrics = periodMetricsCalculator.calculate(
+                pullRequests,
+                currentPeriod,
+                now
+        );
+
+        PullRequestPeriodMetrics previousPeriodMetrics = periodMetricsCalculator.calculate(
+                pullRequests,
+                previousPeriod,
+                currentPeriod
+        );
+
+        List<PullRequestInsight> insights = insightGenerator.generate(currentPeriodMetrics, previousPeriodMetrics);
+
+        return new RepositoryInsightsResponse(
+                repositoryId,
+                repository.getLastSyncedAt(),
+                insights
+        );
+    }
+
     private RepositoryAnalyticsResponse analyze(String repositoryUrl, boolean forceSync)
     {
         BaseRepositoryInfo repositoryInfo = parseRepositoryUrl(repositoryUrl);
@@ -90,7 +152,6 @@ public class RepositoryAnalyticsService
                 analytics
         );
     }
-
 
     private BaseRepositoryInfo parseRepositoryUrl(String repositoryUrl)
     {
@@ -131,20 +192,4 @@ public class RepositoryAnalyticsService
         return new BaseRepositoryInfo(owner, repositoryName);
     }
 
-    public RepositoryTrendsResponse getTrends(long repositoryId, int months)
-    {
-        RepositoryEntity repository = repositoryRepository.findById(repositoryId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository does not exist")
-        );
-
-
-        List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repositoryId);
-        List<PullRequestMonthlyMetrics> monthlyMetrics = trendsCalculator.calculate(pullRequests, months);
-
-        return new RepositoryTrendsResponse(
-                repositoryId,
-                repository.getLastSyncedAt(),
-                monthlyMetrics
-        );
-    }
 }

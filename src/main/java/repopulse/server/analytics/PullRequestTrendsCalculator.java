@@ -13,6 +13,15 @@ import java.util.*;
 @Component
 public class PullRequestTrendsCalculator
 {
+    private enum PullRequestMetricType
+    {
+        CREATED,
+        OPEN_AT_MONTH_END,
+        MERGED,
+        CLOSED_WITHOUT_MERGE
+    }
+
+
     public List<PullRequestMonthlyMetrics> calculate(List<PullRequestEntity> pullRequests, int months)
     {
         Map<YearMonth, Map<PullRequestMetricType, Long>> pullRequestMonthlyMetrics = new HashMap<>();
@@ -100,7 +109,7 @@ public class PullRequestTrendsCalculator
             openPullRequestsAtMonthEnd = pullRequestMonthlyMetrics.get(startMonth.plusMonths(i))
                     .get(PullRequestMetricType.OPEN_AT_MONTH_END);
 
-            mergeRatePercent = PullRequestAnalyticsCalculator.roundToHundredths(
+            mergeRatePercent = PullRequestAnalyticsCalculator.roundToHundredth(
                     (double) pullRequestsMerged
                             / (pullRequestsMerged + pullRequestsClosedWithoutMerge) * 100
             );
@@ -108,7 +117,7 @@ public class PullRequestTrendsCalculator
             List<Long> durations = mergeDurationSeconds.get(currentYearMonth);
             medianMergeTimeHours = durations.isEmpty()
                     ? null
-                    : PullRequestAnalyticsCalculator.roundToHundredths(
+                    : PullRequestAnalyticsCalculator.roundToHundredth(
                             PullRequestAnalyticsCalculator.getMedianMergeTimeHours(durations)
             );
 
