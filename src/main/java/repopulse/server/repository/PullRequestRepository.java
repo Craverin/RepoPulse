@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface PullRequestRepository extends JpaRepository<PullRequestEntity, Long> {
     Optional<PullRequestEntity> findByGithubId(Long githubId);
     List<PullRequestEntity> findAllByRepositoryId(Long repositoryId);
+    List<PullRequestEntity> findAllByGithubIdIn(List<Long> githubIds);
 }

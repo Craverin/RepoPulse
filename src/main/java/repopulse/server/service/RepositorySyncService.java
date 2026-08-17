@@ -2,36 +2,33 @@ package repopulse.server.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import repopulse.server.api.GithubApiClient;
-import repopulse.server.dto.GithubPullRequestResponse;
+import repopulse.server.github.rest.GithubRestClient;
 import repopulse.server.dto.GithubRepositoryResponse;
-import repopulse.server.entity.PullRequestEntity;
 import repopulse.server.entity.RepositoryEntity;
 import repopulse.server.repository.PullRequestRepository;
 import repopulse.server.repository.RepositoryRepository;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 @Service
 @Transactional
 public class RepositorySyncService
 {
-    private final GithubApiClient githubClient;
+    private final GithubRestClient githubClient;
     private final RepositoryRepository repositoryRepository;
-    private final PullRequestRepository pullRequestRepository;
+    private final PullRequestSyncService pullRequestSyncService;
 
-    public RepositorySyncService(GithubApiClient githubClient,
-                                      RepositoryRepository repositoryRepository,
-                                      PullRequestRepository pullRequestRepository)
+    public RepositorySyncService(GithubRestClient githubClient,
+                                 RepositoryRepository repositoryRepository,
+                                 PullRequestSyncService pullRequestSyncService)
     {
         this.githubClient = githubClient;
         this.repositoryRepository = repositoryRepository;
-        this.pullRequestRepository = pullRequestRepository;
+        this.pullRequestSyncService = pullRequestSyncService;
     }
 
-    public RepositoryEntity createOrUpdateRepository(GithubRepositoryResponse response)
+    public RepositoryEntity upsertRepository(GithubRepositoryResponse response)
     {
         RepositoryEntity currentRepositoryEntity = repositoryRepository.findByGithubId(response.id())
                 .orElse(null);
@@ -58,60 +55,13 @@ public class RepositorySyncService
         return currentRepositoryEntity;
     }
 
-    public void syncPullRequests(RepositoryEntity repositoryEntity)
-    {
-        String owner = repositoryEntity.getOwner();
-        String repositoryName = repositoryEntity.getName();
-
-        List<GithubPullRequestResponse> pullRequests = githubClient.getAllPullRequests(owner, repositoryName);
-
-        for (GithubPullRequestResponse pullRequest : pullRequests)
-        {
-            PullRequestEntity currentEntity = pullRequestRepository.findByGithubId(pullRequest.id())
-                    .orElse(null);
-
-            if (currentEntity == null)
-            {
-                PullRequestEntity pullRequestEntity = new PullRequestEntity(
-                        pullRequest.id(),
-                        repositoryEntity,
-                        pullRequest.number(),
-                        pullRequest.state(),
-                        pullRequest.title(),
-                        pullRequest.htmlUrl(),
-                        pullRequest.user().login(),
-                        pullRequest.draft(),
-                        pullRequest.updatedAt(),
-                        pullRequest.createdAt(),
-                        pullRequest.closedAt(),
-                        pullRequest.mergedAt()
-                );
-
-                pullRequestRepository.save(pullRequestEntity);
-                continue;
-            }
-
-            currentEntity.setState(pullRequest.state());
-            currentEntity.setTitle(pullRequest.title());
-            currentEntity.setHtmlUrl(pullRequest.htmlUrl());
-            currentEntity.setAuthorLogin(pullRequest.user().login());
-            currentEntity.setDraft(pullRequest.draft());
-            currentEntity.setUpdatedAt(pullRequest.updatedAt());
-            currentEntity.setClosedAt(pullRequest.closedAt());
-            currentEntity.setMergedAt(pullRequest.mergedAt());
-        }
-    }
-
     public RepositoryEntity sync(String owner, String repositoryName, boolean forceSync)
     {
         GithubRepositoryResponse repositoryResponse = githubClient.getRepository(owner, repositoryName);
-        RepositoryEntity repository = createOrUpdateRepository(repositoryResponse);
+        RepositoryEntity repository = upsertRepository(repositoryResponse);
 
         if (forceSync || requiresSync(repository))
-        {
-            syncPullRequests(repository);
-            repository.setLastSyncedAt(Instant.now());
-        }
+            pullRequestSyncService.syncPullRequests(repository);
 
         return repository;
     }

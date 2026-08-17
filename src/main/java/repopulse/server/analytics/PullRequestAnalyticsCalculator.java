@@ -17,7 +17,7 @@ public class PullRequestAnalyticsCalculator
         long totalPullRequests = pullRequests.size();
 
         long openPullRequests = 0, openDraftPullRequests = 0, mergedPullRequests = 0,
-             mergedDraftPullRequests = 0, closedWithoutMergePullRequests = 0;
+             closedWithoutMergePullRequests = 0;
 
         long freshOpenPullRequests = 0, agingOpenPullRequests = 0, staleOpenPullRequests = 0,
              veryStaleOpenPullRequests = 0;
@@ -33,12 +33,13 @@ public class PullRequestAnalyticsCalculator
 
         for (PullRequestEntity pullRequestEntity : pullRequests)
         {
-            pullRequestAuthors.add(pullRequestEntity.getAuthorLogin());
+            if (pullRequestEntity.getAuthorLogin() != null)
+                pullRequestAuthors.add(pullRequestEntity.getAuthorLogin());
 
             if (pullRequestEntity.getCreatedAt().isAfter(thirtyDaysAgo))
                 createdLast30Days++;
 
-            if (pullRequestEntity.getState().equals("open"))
+            if (pullRequestEntity.getState().equals("OPEN"))
             {
                 openPullRequests++;
                 if (pullRequestEntity.isDraft())
@@ -56,29 +57,27 @@ public class PullRequestAnalyticsCalculator
                     veryStaleOpenPullRequests++;
             }
 
-            if (pullRequestEntity.getState().equals("closed")) {
-                if (pullRequestEntity.getMergedAt() != null) {
-                    mergedPullRequests++;
-                    if (pullRequestEntity.isDraft())
-                        mergedDraftPullRequests++;
-
-                    if (pullRequestEntity.getMergedAt().isAfter(thirtyDaysAgo))
-                        mergedLast30Days++;
-
-                    long mergeTimeSeconds = Duration.between(
-                            pullRequestEntity.getCreatedAt(),
-                            pullRequestEntity.getMergedAt()
-                    ).toSeconds();
-
-                    mergeDurationSeconds.add(mergeTimeSeconds);
-                    totalMergeTimeSeconds += mergeTimeSeconds;
-
-                    continue;
-                }
-
+            if (pullRequestEntity.getState().equals("CLOSED"))
+            {
                 closedWithoutMergePullRequests++;
                 if (pullRequestEntity.getClosedAt().isAfter(thirtyDaysAgo))
                     closedWithoutMergeLast30Days++;
+            }
+
+            if (pullRequestEntity.getState().equals("MERGED"))
+            {
+                mergedPullRequests++;
+
+                if (pullRequestEntity.getMergedAt().isAfter(thirtyDaysAgo))
+                    mergedLast30Days++;
+
+                long mergeTimeSeconds = Duration.between(
+                        pullRequestEntity.getCreatedAt(),
+                        pullRequestEntity.getMergedAt()
+                ).toSeconds();
+
+                mergeDurationSeconds.add(mergeTimeSeconds);
+                totalMergeTimeSeconds += mergeTimeSeconds;
             }
         }
 
@@ -109,7 +108,6 @@ public class PullRequestAnalyticsCalculator
                 openPullRequests,
                 openDraftPullRequests,
                 mergedPullRequests,
-                mergedDraftPullRequests,
                 closedWithoutMergePullRequests,
 
                 mergeRatePercent,
@@ -136,7 +134,7 @@ public class PullRequestAnalyticsCalculator
     {
         return pullRequests
                 .stream()
-                .filter(pr -> pr.getState().equals("open"))
+                .filter(pr -> pr.getState().equals("OPEN"))
                 .map(pr -> new StalePullRequest(
                         pr.getNumber(),
                         pr.getTitle(),

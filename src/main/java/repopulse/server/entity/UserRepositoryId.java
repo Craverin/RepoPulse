@@ -23,14 +23,10 @@ public class UserRepositoryId implements Serializable
     public boolean equals(Object object)
     {
         if (this == object)
-        {
             return true;
-        }
 
         if (!(object instanceof UserRepositoryId other))
-        {
             return false;
-        }
 
         return Objects.equals(this.userId, other.userId)
                 && Objects.equals(this.repositoryId, other.repositoryId);

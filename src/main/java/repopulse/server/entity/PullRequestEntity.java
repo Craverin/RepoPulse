@@ -32,22 +32,32 @@ public class PullRequestEntity
     @JoinColumn(name = "repository_id", nullable = false)
     private RepositoryEntity repository;
 
-    @Column(name = "number", nullable = false)
+    @Column(nullable = false)
     private Integer number;
 
-    @Column(name = "state", nullable = false)
+    @Column(nullable = false)
     private String state;
 
-    @Column(name = "title", nullable = false)
+    @Column(nullable = false)
     private String title;
 
     @Column(name = "html_url", nullable = false)
     private String htmlUrl;
 
-    @Column(name = "author_login", nullable = false)
+    @Column(name = "author_login")
     private String authorLogin;
 
-    @Column(name = "draft", nullable = false)
+    private Integer additions;
+
+    private Integer deletions;
+
+    @Column(name = "changed_files")
+    private Integer changedFiles;
+
+    @Column(name = "commits_count")
+    private Integer commitsCount;
+
+    @Column(nullable = false)
     private boolean draft;
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
@@ -75,6 +85,10 @@ public class PullRequestEntity
                              String title,
                              String htmlUrl,
                              String authorLogin,
+                             Integer additions,
+                             Integer deletions,
+                             Integer changedFiles,
+                             Integer commitsCount,
                              boolean draft,
                              Instant updatedAt,
                              Instant createdAt,
@@ -88,6 +102,10 @@ public class PullRequestEntity
         this.title = title;
         this.htmlUrl = htmlUrl;
         this.authorLogin = authorLogin;
+        this.additions = additions;
+        this.deletions = deletions;
+        this.changedFiles = changedFiles;
+        this.commitsCount = commitsCount;
         this.draft = draft;
         this.updatedAt = updatedAt;
         this.createdAt = createdAt;
@@ -177,5 +195,37 @@ public class PullRequestEntity
 
     public Long getGithubId() {
         return githubId;
+    }
+
+    public Integer getAdditions() {
+        return additions;
+    }
+
+    public void setAdditions(Integer additions) {
+        this.additions = additions;
+    }
+
+    public Integer getDeletions() {
+        return deletions;
+    }
+
+    public void setDeletions(Integer deletions) {
+        this.deletions = deletions;
+    }
+
+    public Integer getChangedFiles() {
+        return changedFiles;
+    }
+
+    public void setChangedFiles(Integer changedFiles) {
+        this.changedFiles = changedFiles;
+    }
+
+    public Integer getCommitsCount() {
+        return commitsCount;
+    }
+
+    public void setCommitsCount(Integer commitsCount) {
+        this.commitsCount = commitsCount;
     }
 }

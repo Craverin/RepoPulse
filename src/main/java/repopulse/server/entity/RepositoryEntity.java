@@ -19,10 +19,10 @@ public class RepositoryEntity
     @Column(name = "github_id", nullable = false, unique = true)
     private Long githubId;
 
-    @Column(name = "owner", nullable = false)
+    @Column(nullable = false)
     private String owner;
 
-    @Column(name = "name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "html_url", nullable = false)
