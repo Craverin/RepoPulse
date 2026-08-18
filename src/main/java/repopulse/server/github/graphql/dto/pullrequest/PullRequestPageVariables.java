@@ -1,3 +1,9 @@
 package repopulse.server.github.graphql.dto.pullrequest;
 
-public record PullRequestPageVariables(String owner, String name, String cursor) { }
+import java.util.List;
+
+public record PullRequestPageVariables(String owner,
+                                           String name,
+                                           String cursor,
+                                           List<PullRequestState> states) { }
+

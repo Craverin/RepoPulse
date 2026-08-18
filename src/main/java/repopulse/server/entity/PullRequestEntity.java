@@ -85,10 +85,6 @@ public class PullRequestEntity
                              String title,
                              String htmlUrl,
                              String authorLogin,
-                             Integer additions,
-                             Integer deletions,
-                             Integer changedFiles,
-                             Integer commitsCount,
                              boolean draft,
                              Instant updatedAt,
                              Instant createdAt,
@@ -102,10 +98,6 @@ public class PullRequestEntity
         this.title = title;
         this.htmlUrl = htmlUrl;
         this.authorLogin = authorLogin;
-        this.additions = additions;
-        this.deletions = deletions;
-        this.changedFiles = changedFiles;
-        this.commitsCount = commitsCount;
         this.draft = draft;
         this.updatedAt = updatedAt;
         this.createdAt = createdAt;

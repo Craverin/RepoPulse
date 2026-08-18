@@ -5,7 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 import repopulse.server.github.rest.GithubRestClient;
 import repopulse.server.dto.GithubRepositoryResponse;
 import repopulse.server.entity.RepositoryEntity;
-import repopulse.server.repository.PullRequestRepository;
 import repopulse.server.repository.RepositoryRepository;
 
 import java.time.Duration;
@@ -55,13 +54,17 @@ public class RepositorySyncService
         return currentRepositoryEntity;
     }
 
-    public RepositoryEntity sync(String owner, String repositoryName, boolean forceSync)
+    public RepositoryEntity syncRepository(String owner, String repositoryName, boolean forceSync)
     {
         GithubRepositoryResponse repositoryResponse = githubClient.getRepository(owner, repositoryName);
         RepositoryEntity repository = upsertRepository(repositoryResponse);
 
         if (forceSync || requiresSync(repository))
-            pullRequestSyncService.syncPullRequests(repository);
+        {
+            pullRequestSyncService.syncPullRequestSummaries(repository);
+            pullRequestSyncService.enrichPullRequestSizes(repository);
+            repository.setLastSyncedAt(Instant.now());
+        }
 
         return repository;
     }

@@ -9,22 +9,25 @@ import org.springframework.web.client.RestClient;
 import repopulse.server.github.graphql.dto.GithubGraphqlError;
 import repopulse.server.github.graphql.dto.GithubGraphqlRequest;
 import repopulse.server.github.graphql.dto.GithubGraphqlResponse;
-import repopulse.server.github.graphql.dto.pullrequest.GithubPullRequestConnection;
-import repopulse.server.github.graphql.dto.pullrequest.PullRequestPageData;
 import repopulse.server.github.graphql.dto.pullrequest.PullRequestPageVariables;
-import repopulse.server.repository.PullRequestRepository;
+import repopulse.server.github.graphql.dto.pullrequest.PullRequestState;
+import repopulse.server.github.graphql.dto.pullrequest.size.PullRequestSizeConnection;
+import repopulse.server.github.graphql.dto.pullrequest.size.PullRequestSizePageData;
+import repopulse.server.github.graphql.dto.pullrequest.summary.*;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Component
 public class GithubGraphqlClient
 {
-    private static final String PULL_REQUESTS_QUERY = """
-            query GetRepositoryPullRequestsPage(
+    private static final String PULL_REQUESTS_SUMMARY_QUERY = """
+            query GetPullRequestPage(
                 $owner: String!,
                 $name: String!,
-                $cursor: String
+                $cursor: String,
+                $states: [PullRequestState!]!
             )
             {
                 repository(owner: $owner, name: $name)
@@ -32,8 +35,9 @@ public class GithubGraphqlClient
                     pullRequests(
                         first: 100,
                         after: $cursor,
-                        states: [OPEN, CLOSED, MERGED],
-                        orderBy: {
+                        states: $states
+                        orderBy:
+                        {
                             field: UPDATED_AT,
                             direction: DESC
                         }
@@ -49,7 +53,8 @@ public class GithubGraphqlClient
                             title
                             url
             
-                            author {
+                            author
+                            {
                                 login
                             }
             
@@ -58,6 +63,43 @@ public class GithubGraphqlClient
                             updatedAt
                             closedAt
                             mergedAt
+                        }
+            
+                        pageInfo
+                        {
+                            hasNextPage
+                            endCursor
+                        }
+                    }
+                }
+            }
+            """;
+
+    private static final String PULL_REQUESTS_SIZE_QUERY = """
+            query GetPullRequestSizePage(
+                $owner: String!,
+                $name: String!,
+                $cursor: String,
+                $states: [PullRequestState!]!
+            )
+            {
+                repository(owner: $owner, name: $name)
+                {
+                    pullRequests(
+                        first: 100,
+                        after: $cursor,
+                        states: $states
+                        orderBy:
+                        {
+                            field: UPDATED_AT,
+                            direction: DESC
+                        }
+                    )
+                    {
+                        nodes
+                        {
+                            fullDatabaseId
+                            updatedAt
             
                             additions
                             deletions
@@ -91,34 +133,87 @@ public class GithubGraphqlClient
                 .build();
     }
 
-    public GithubPullRequestConnection getPullRequestsPage(String owner,
-                                                           String repositoryName,
-                                                           String cursor)
+    public PullRequestSummaryConnection getPullRequestSummaryPage(String owner,
+                                                                  String repositoryName,
+                                                                  String cursor,
+                                                                  List<PullRequestState> states)
     {
         GithubGraphqlRequest<PullRequestPageVariables> request = new GithubGraphqlRequest<>(
-                PULL_REQUESTS_QUERY,
-                new PullRequestPageVariables(owner, repositoryName, cursor)
+                PULL_REQUESTS_SUMMARY_QUERY,
+                new PullRequestPageVariables(owner, repositoryName, cursor, states)
         );
 
-        GithubGraphqlResponse<PullRequestPageData> response = restClient
-                .post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
 
+        PullRequestSummaryPageData data = executeGraphql(
+                request,
+                new ParameterizedTypeReference<>() { }
+        );
+
+
+        return data.repository().pullRequests();
+    }
+
+    public PullRequestSizeConnection getPullRequestSizePage(String owner,
+                                                            String repositoryName,
+                                                            String cursor,
+                                                            List<PullRequestState> states)
+    {
+        GithubGraphqlRequest<PullRequestPageVariables> request = new GithubGraphqlRequest<>(
+                PULL_REQUESTS_SIZE_QUERY,
+                new PullRequestPageVariables(owner, repositoryName, cursor, states)
+        );
+
+        PullRequestSizePageData data = executeGraphql(
+                request,
+                new ParameterizedTypeReference<>() { }
+        );
+
+        return data.repository().pullRequests();
+    }
+
+    private <T, V> V executeGraphql(GithubGraphqlRequest<T> request,
+                                    ParameterizedTypeReference<GithubGraphqlResponse<V>> responseType)
+    {
+        long startedAt = System.nanoTime();
+
+        GithubGraphqlResponse<V> response;
+
+        try
+        {
+            response = restClient
+                    .post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(responseType);
+        }
+        finally
+        {
+            double elapsedSeconds =
+                    (System.nanoTime() - startedAt) / 1_000_000_000.0;
+
+            System.out.printf(
+                    Locale.ROOT,
+                    "GitHub GraphQL request finished in %.3f seconds%n",
+                    elapsedSeconds
+            );
+        }
 
         if (response == null)
             throw new IllegalStateException("GitHub GraphQL returned an empty response");
 
-        if (response.errors() != null && !response.errors().isEmpty())
+        checkForErrors(response.errors());
+
+        return response.data();
+    }
+
+    private void checkForErrors(List<GithubGraphqlError> errors)
+    {
+        if (errors != null && !errors.isEmpty())
         {
-            throw new IllegalStateException(response.errors().stream()
+            throw new IllegalStateException(errors.stream()
                     .map(GithubGraphqlError::message)
                     .collect(Collectors.joining("; ")));
         }
-
-        return response.data().repository().pullRequests();
     }
-
 }

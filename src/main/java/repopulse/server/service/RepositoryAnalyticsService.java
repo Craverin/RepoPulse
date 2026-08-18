@@ -1,6 +1,5 @@
 package repopulse.server.service;
 
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -138,7 +137,7 @@ public class RepositoryAnalyticsService
         String owner = repositoryInfo.owner();
         String repositoryName = repositoryInfo.name();
 
-        RepositoryEntity repository = repositorySyncService.sync(owner, repositoryName, forceSync);
+        RepositoryEntity repository = repositorySyncService.syncRepository(owner, repositoryName, forceSync);
         List<PullRequestEntity> pullRequests = pullRequestRepository.findAllByRepositoryId(repository.getId());
 
         PullRequestAnalytics analytics = analyticsCalculator.calculate(pullRequests);
