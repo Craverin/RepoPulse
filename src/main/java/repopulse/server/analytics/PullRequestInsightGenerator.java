@@ -1,8 +1,8 @@
 package repopulse.server.analytics;
 
 import org.springframework.stereotype.Component;
-import repopulse.server.dto.analytics.InsightSeverity;
-import repopulse.server.dto.analytics.InsightValueUnit;
+import repopulse.server.dto.analytics.pullrequest.InsightSeverity;
+import repopulse.server.dto.analytics.pullrequest.InsightValueUnit;
 import repopulse.server.dto.analytics.pullrequest.PullRequestInsight;
 import repopulse.server.dto.analytics.pullrequest.PullRequestInsightType;
 import repopulse.server.dto.analytics.pullrequest.PullRequestPeriodMetrics;

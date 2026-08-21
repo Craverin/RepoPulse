@@ -1,7 +1,6 @@
 package repopulse.server.service;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import repopulse.server.github.rest.GithubRestClient;
 import repopulse.server.dto.GithubRepositoryResponse;
 import repopulse.server.entity.RepositoryEntity;
@@ -11,7 +10,6 @@ import java.time.Duration;
 import java.time.Instant;
 
 @Service
-@Transactional
 public class RepositorySyncService
 {
     private final GithubRestClient githubClient;
@@ -62,8 +60,9 @@ public class RepositorySyncService
         if (forceSync || requiresSync(repository))
         {
             pullRequestSyncService.syncPullRequestSummaries(repository);
+            repository.setSummarySyncedAt(Instant.now());
             pullRequestSyncService.enrichPullRequestSizes(repository);
-            repository.setLastSyncedAt(Instant.now());
+            repository.setSizeSyncedAt(Instant.now());
         }
 
         return repository;
@@ -72,7 +71,12 @@ public class RepositorySyncService
 
     public boolean requiresSync(RepositoryEntity repository)
     {
-        return repository.getLastSyncedAt().isBefore(Instant.now().minus(Duration.ofMinutes(15)));
+        Instant syncTimeThreshold = Instant.now().minus(Duration.ofMinutes(15));
+        Instant summarySyncedAt = repository.getSummarySyncedAt();
+        Instant sizeSyncedAt = repository.getSizeSyncedAt();
+
+        return summarySyncedAt == null || sizeSyncedAt == null ||
+               summarySyncedAt.isBefore(syncTimeThreshold) || sizeSyncedAt.isBefore(syncTimeThreshold);
     }
 
 }

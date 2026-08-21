@@ -1,6 +1,7 @@
 package repopulse.server.analytics;
 
 import org.springframework.stereotype.Component;
+import repopulse.server.analytics.statistics.Statistics;
 import repopulse.server.dto.analytics.pullrequest.PullRequestPeriodMetrics;
 import repopulse.server.entity.PullRequestEntity;
 
@@ -19,7 +20,7 @@ public class PullRequestPeriodMetricsCalculator
         long pullRequestsMerged = 0, pullRequestsClosedWithoutMerge = 0, openPullRequestsAtPeriodEnd = 0;
         Double mergeRatePercent, medianMergeTimeHours;
 
-        List<Long> mergeDurationSeconds = new ArrayList<>();
+        List<Integer> mergeDurationSeconds = new ArrayList<>();
 
         for (PullRequestEntity pullRequest : pullRequests)
         {
@@ -38,7 +39,7 @@ public class PullRequestPeriodMetricsCalculator
                 if (pullRequest.getMergedAt() != null)
                 {
                     pullRequestsMerged++;
-                    mergeDurationSeconds.add(Duration.between(
+                    mergeDurationSeconds.add((int) Duration.between(
                             pullRequest.getCreatedAt(),
                             closedAt
                     ).toSeconds());
@@ -50,14 +51,14 @@ public class PullRequestPeriodMetricsCalculator
             }
         }
 
-        mergeRatePercent = PullRequestAnalyticsCalculator.roundToHundredth(
-                (double)pullRequestsMerged
-                        / (pullRequestsMerged + pullRequestsClosedWithoutMerge) * 100
-        );
+        long completed = pullRequestsMerged + pullRequestsClosedWithoutMerge;
+        mergeRatePercent = completed == 0
+                ? null
+                : (double) pullRequestsMerged / completed * 100;
 
-        medianMergeTimeHours = PullRequestAnalyticsCalculator.getMedianMergeTimeHours(mergeDurationSeconds);
-        if (medianMergeTimeHours != null)
-            medianMergeTimeHours = PullRequestAnalyticsCalculator.roundToHundredth(medianMergeTimeHours);
+        medianMergeTimeHours = mergeDurationSeconds.isEmpty()
+                ? null
+                : Statistics.median(mergeDurationSeconds) / 3600.0;
 
         return new PullRequestPeriodMetrics(
                 periodStart,
@@ -66,8 +67,8 @@ public class PullRequestPeriodMetricsCalculator
                 pullRequestsClosedWithoutMerge,
                 openPullRequestsAtPeriodEnd,
 
-                mergeRatePercent,
-                medianMergeTimeHours
+                Statistics.roundToHundredth(mergeRatePercent),
+                Statistics.roundToHundredth(medianMergeTimeHours)
         );
     }
 }

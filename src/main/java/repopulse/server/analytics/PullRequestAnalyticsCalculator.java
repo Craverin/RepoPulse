@@ -1,6 +1,7 @@
 package repopulse.server.analytics;
 
 import org.springframework.stereotype.Component;
+import repopulse.server.analytics.statistics.Statistics;
 import repopulse.server.dto.analytics.pullrequest.PullRequestAnalytics;
 import repopulse.server.dto.StalePullRequest;
 import repopulse.server.entity.PullRequestEntity;
@@ -27,7 +28,7 @@ public class PullRequestAnalyticsCalculator
         Set<String> pullRequestAuthors = new HashSet<>();
 
         long totalMergeTimeSeconds = 0;
-        List<Long> mergeDurationSeconds = new ArrayList<>();
+        List<Integer> mergeDurationSeconds = new ArrayList<>();
 
         Instant thirtyDaysAgo = Instant.now().minus(Duration.ofDays(30));
 
@@ -71,7 +72,7 @@ public class PullRequestAnalyticsCalculator
                 if (pullRequestEntity.getMergedAt().isAfter(thirtyDaysAgo))
                     mergedLast30Days++;
 
-                long mergeTimeSeconds = Duration.between(
+                int mergeTimeSeconds = (int) Duration.between(
                         pullRequestEntity.getCreatedAt(),
                         pullRequestEntity.getMergedAt()
                 ).toSeconds();
@@ -87,20 +88,19 @@ public class PullRequestAnalyticsCalculator
         Double mergeRatePercent = null, averageMergeTimeHours = null, medianMergeTimeHours = null;
         if (openPullRequests > 0)
         {
-            staleOpenPullRequestRatePercent = roundToHundredth(
+            staleOpenPullRequestRatePercent =
                     (staleOpenPullRequests + veryStaleOpenPullRequests)
-                            / (double)openPullRequests * 100
-            );
+                     / (double)openPullRequests * 100;
         }
 
         long closedPullRequests = mergedPullRequests + closedWithoutMergePullRequests;
         if (closedPullRequests > 0)
-            mergeRatePercent = roundToHundredth(mergedPullRequests / (double)closedPullRequests * 100);
+            mergeRatePercent = mergedPullRequests / (double)closedPullRequests * 100;
 
         if (mergedPullRequests > 0)
         {
-            averageMergeTimeHours = roundToHundredth(totalMergeTimeSeconds / mergedPullRequests / 3600d);
-            medianMergeTimeHours = roundToHundredth(getMedianMergeTimeHours(mergeDurationSeconds));
+            averageMergeTimeHours = (double)totalMergeTimeSeconds / mergedPullRequests / 3600;
+            medianMergeTimeHours = Statistics.median(mergeDurationSeconds) / 3600.0;
         }
 
         return new PullRequestAnalytics(
@@ -110,15 +110,15 @@ public class PullRequestAnalyticsCalculator
                 mergedPullRequests,
                 closedWithoutMergePullRequests,
 
-                mergeRatePercent,
-                averageMergeTimeHours,
-                medianMergeTimeHours,
+                Statistics.roundToHundredth(mergeRatePercent),
+                Statistics.roundToHundredth(averageMergeTimeHours),
+                Statistics.roundToHundredth(medianMergeTimeHours),
 
                 freshOpenPullRequests,
                 agingOpenPullRequests,
                 staleOpenPullRequests,
                 veryStaleOpenPullRequests,
-                staleOpenPullRequestRatePercent,
+                Statistics.roundToHundredth(staleOpenPullRequestRatePercent),
 
                 createdLast30Days,
                 mergedLast30Days,
@@ -145,33 +145,5 @@ public class PullRequestAnalyticsCalculator
                 .sorted(Comparator.comparingLong(StalePullRequest::inactiveDays).reversed())
                 .limit(5)
                 .toList();
-    }
-
-    public static Double getMedianMergeTimeHours(List<Long> mergeDurationSeconds)
-    {
-        Collections.sort(mergeDurationSeconds);
-        int size = mergeDurationSeconds.size();
-
-        if (size == 0)
-            return null;
-
-        if (size % 2 != 0)
-        {
-            long medianSeconds = mergeDurationSeconds.get(size / 2);
-            return medianSeconds / 3600d;
-        }
-
-        double medianSeconds =
-                (mergeDurationSeconds.get(size / 2 - 1)
-                        + mergeDurationSeconds.get(size / 2)) / 2d;
-
-        return medianSeconds / 3600;
-    }
-
-
-    public static Double roundToHundredth(Double number)
-    {
-        double scale = Math.pow(10, 2);
-        return Math.round(number * scale) / scale;
     }
 }

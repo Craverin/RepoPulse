@@ -1,4 +1,4 @@
-package repopulse.server.dto.analytics;
+package repopulse.server.dto.analytics.pullrequest;
 
 public enum InsightValueUnit
 {

@@ -1,7 +1,6 @@
 package repopulse.server.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -31,10 +30,13 @@ public class RepositoryEntity
     @Column(name = "default_branch", nullable = false)
     private String defaultBranch;
 
-    @Generated
     @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
-    @Column(name = "last_synced_at", nullable = false)
-    private Instant lastSyncedAt;
+    @Column(name = "summary_synced_at")
+    private Instant summarySyncedAt;
+
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
+    @Column(name = "size_synced_at")
+    private Instant sizeSyncedAt;
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
     @Column(name = "orphaned_at")
@@ -92,11 +94,19 @@ public class RepositoryEntity
         return defaultBranch;
     }
 
-    public void setLastSyncedAt(Instant lastSyncedAt) {
-        this.lastSyncedAt = lastSyncedAt;
+    public Instant getSummarySyncedAt() {
+        return summarySyncedAt;
     }
 
-    public Instant getLastSyncedAt() {
-        return lastSyncedAt;
+    public void setSummarySyncedAt(Instant summarySyncedAt) {
+        this.summarySyncedAt = summarySyncedAt;
+    }
+
+    public Instant getSizeSyncedAt() {
+        return sizeSyncedAt;
+    }
+
+    public void setSizeSyncedAt(Instant sizeSyncedAt) {
+        this.sizeSyncedAt = sizeSyncedAt;
     }
 }

@@ -86,7 +86,7 @@ public class GithubGraphqlClient
                 repository(owner: $owner, name: $name)
                 {
                     pullRequests(
-                        first: 100,
+                        first: 75,
                         after: $cursor,
                         states: $states
                         orderBy:

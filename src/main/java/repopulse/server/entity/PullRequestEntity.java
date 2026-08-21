@@ -133,10 +133,6 @@ public class PullRequestEntity
         this.updatedAt = updatedAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public void setClosedAt(Instant closedAt) {
         this.closedAt = closedAt;
     }
@@ -203,6 +199,14 @@ public class PullRequestEntity
 
     public void setDeletions(Integer deletions) {
         this.deletions = deletions;
+    }
+
+    public Integer getChangedLines()
+    {
+        if (additions == null || deletions == null)
+            return null;
+
+        return additions + deletions;
     }
 
     public Integer getChangedFiles() {

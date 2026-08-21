@@ -1,5 +1,6 @@
 package repopulse.server.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import repopulse.server.entity.RepositoryEntity;
 import repopulse.server.github.graphql.GithubGraphqlClient;
@@ -26,52 +27,32 @@ public class PullRequestSyncService
         this.pullRequestPersistenceService = pullRequestPersistenceService;
     }
 
-    public void syncPullRequestSummaries(RepositoryEntity repository)
-    {
-        syncOpenPullRequestSummaries(repository);
-        syncCompletedPullRequestSummaries(repository);
-    }
-
+    @Transactional
     public void enrichPullRequestSizes(RepositoryEntity repository)
     {
+        Instant syncStart = Instant.now();
+
         enrichOpenPullRequestSizes(repository);
         enrichCompletedPullRequestSizes(repository);
+
+        repository.setSizeSyncedAt(syncStart);
     }
 
-    private void syncOpenPullRequestSummaries(RepositoryEntity repository)
-    {
-        String cursor = null;
-        boolean hasNextPage = true;
-
-        while (hasNextPage)
-        {
-            System.out.println("[SUMMARY-OPEN]: SENDING");
-            PullRequestSummaryConnection page = githubClient.getPullRequestSummaryPage(
-                    repository.getOwner(),
-                    repository.getName(),
-                    cursor,
-                    List.of(PullRequestState.OPEN)
-            );
-
-            pullRequestPersistenceService.upsertSummaryPage(repository, page.nodes());
-            hasNextPage = page.pageInfo().hasNextPage();
-            cursor = page.pageInfo().endCursor();
-        }
-    }
-
-    private void syncCompletedPullRequestSummaries(RepositoryEntity repository)
+    @Transactional
+    public void syncPullRequestSummaries(RepositoryEntity repository)
     {
         String cursor = null;
         boolean hasNextPage = true;
         int i = 0;
 
-        Instant oneYearAgo = Instant.now().minus(365, ChronoUnit.DAYS);
         Instant threshold;
 
-        if (repository.getLastSyncedAt().isAfter(oneYearAgo))
-            threshold = Instant.now();
+        if (repository.getSummarySyncedAt() != null)
+            threshold = repository.getSummarySyncedAt().minusSeconds(180);
         else
-            threshold = oneYearAgo;
+            threshold = null;
+
+        Instant syncStart = Instant.now();
 
         while (hasNextPage)
         {
@@ -80,12 +61,12 @@ public class PullRequestSyncService
                     repository.getOwner(),
                     repository.getName(),
                     cursor,
-                    List.of(PullRequestState.CLOSED, PullRequestState.MERGED)
+                    List.of(PullRequestState.values())
             );
 
             List<PullRequestSummaryNode> nodes = page.nodes();
 
-            if (!nodes.getLast().updatedAt().isAfter(threshold))
+            if (threshold != null && nodes.getLast().updatedAt().isBefore(threshold))
             {
                 System.out.println("FILTERING OUT PR (SIZE = " + nodes.size() + ")");
                 nodes = nodes.stream()
@@ -102,7 +83,10 @@ public class PullRequestSyncService
             cursor = page.pageInfo().endCursor();
             i++;
         }
+
+        repository.setSummarySyncedAt(syncStart);
     }
+
 
     private void enrichOpenPullRequestSizes(RepositoryEntity repository)
     {
@@ -112,7 +96,7 @@ public class PullRequestSyncService
 
         while (hasNextPage)
         {
-            System.out.println("[SIZE-OPEN]: SENDING [" + (i * 100 + 1) + "-" + (i + 1) * 100 + "]");
+            System.out.println("[SIZE-OPEN]: SENDING [" + (i * 75 + 1) + "-" + (i + 1) * 75 + "]");
             PullRequestSizeConnection page = githubClient.getPullRequestSizePage(
                     repository.getOwner(),
                     repository.getName(),
@@ -136,14 +120,14 @@ public class PullRequestSyncService
         Instant oneYearAgo = Instant.now().minus(365, ChronoUnit.DAYS);
         Instant threshold;
 
-        if (repository.getLastSyncedAt().isAfter(oneYearAgo))
-            threshold = Instant.now();
+        if (repository.getSizeSyncedAt() != null && repository.getSizeSyncedAt().isAfter(oneYearAgo))
+            threshold = repository.getSizeSyncedAt().minusSeconds(180);
         else
             threshold = oneYearAgo;
 
         while (hasNextPage)
         {
-            System.out.println("[SIZE-COMPLETED]: SENDING [" + (i * 100 + 1) + "-" + (i + 1) * 100 + "]");
+            System.out.println("[SIZE-COMPLETED]: SENDING [" + (i * 75 + 1) + "-" + (i + 1) * 75 + "]");
             PullRequestSizeConnection page = githubClient.getPullRequestSizePage(
                     repository.getOwner(),
                     repository.getName(),
@@ -152,7 +136,7 @@ public class PullRequestSyncService
             );
 
             List<PullRequestSizeNode> nodes = page.nodes();
-            if (!nodes.getLast().updatedAt().isAfter(threshold))
+            if (nodes.getLast().updatedAt().isBefore(threshold))
             {
                 System.out.println("FILTERING OUT PR (SIZE = " + nodes.size() + ")");
                 nodes = nodes.stream()

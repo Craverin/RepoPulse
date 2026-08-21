@@ -1,6 +1,7 @@
 package repopulse.server.analytics;
 
 import org.springframework.stereotype.Component;
+import repopulse.server.analytics.statistics.Statistics;
 import repopulse.server.dto.analytics.pullrequest.PullRequestMonthlyMetrics;
 import repopulse.server.entity.PullRequestEntity;
 
@@ -40,12 +41,12 @@ public class PullRequestTrendsCalculator
             pullRequestMonthlyMetrics.put(month, monthMetrics);
         }
 
-        Map<YearMonth, List<Long>> mergeDurationSeconds = new HashMap<>();
+        Map<YearMonth, List<Integer>> mergeDurationSeconds = new HashMap<>();
         for (int i = 0; i < months; i++)
             mergeDurationSeconds.put(startMonth.plusMonths(i), new ArrayList<>());
 
-        long pullRequestsCreated = 0, pullRequestsMerged = 0, pullRequestsClosedWithoutMerge = 0,
-             openPullRequestsAtMonthEnd = 0;
+        long pullRequestsCreated, pullRequestsMerged, pullRequestsClosedWithoutMerge,
+             openPullRequestsAtMonthEnd;
 
         YearMonth endMonth = YearMonth.now().minusMonths(1);
 
@@ -68,10 +69,10 @@ public class PullRequestTrendsCalculator
                     YearMonth mergedAtMonth = toYearMonth(pullRequest.getMergedAt());
                     incrementMetric(pullRequestMonthlyMetrics, mergedAtMonth, PullRequestMetricType.MERGED);
 
-                    List<Long> durations = mergeDurationSeconds.get(mergedAtMonth);
+                    List<Integer> durations = mergeDurationSeconds.get(mergedAtMonth);
                     if (durations != null)
                     {
-                        durations.add(Duration.between(
+                        durations.add((int) Duration.between(
                                 pullRequest.getCreatedAt(),
                                 pullRequest.getMergedAt()).toSeconds()
                         );
@@ -109,17 +110,17 @@ public class PullRequestTrendsCalculator
             openPullRequestsAtMonthEnd = pullRequestMonthlyMetrics.get(startMonth.plusMonths(i))
                     .get(PullRequestMetricType.OPEN_AT_MONTH_END);
 
-            mergeRatePercent = PullRequestAnalyticsCalculator.roundToHundredth(
-                    (double) pullRequestsMerged
-                            / (pullRequestsMerged + pullRequestsClosedWithoutMerge) * 100
-            );
+            long completed = pullRequestsMerged + pullRequestsClosedWithoutMerge;
+            mergeRatePercent = completed == 0
+                    ? null
+                    : (double) pullRequestsMerged / completed * 100;
 
-            List<Long> durations = mergeDurationSeconds.get(currentYearMonth);
+
+            List<Integer> durations = mergeDurationSeconds.get(currentYearMonth);
+
             medianMergeTimeHours = durations.isEmpty()
                     ? null
-                    : PullRequestAnalyticsCalculator.roundToHundredth(
-                            PullRequestAnalyticsCalculator.getMedianMergeTimeHours(durations)
-            );
+                    : Statistics.median(durations) / 3600d;
 
             monthlyMetrics.add(new PullRequestMonthlyMetrics(
                     currentYearMonth,
@@ -128,8 +129,8 @@ public class PullRequestTrendsCalculator
                     pullRequestsClosedWithoutMerge,
                     openPullRequestsAtMonthEnd,
 
-                    mergeRatePercent,
-                    medianMergeTimeHours
+                    Statistics.roundToHundredth(mergeRatePercent),
+                    Statistics.roundToHundredth(medianMergeTimeHours)
             ));
         }
 

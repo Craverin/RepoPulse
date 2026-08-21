@@ -7,7 +7,6 @@ import repopulse.server.entity.RepositoryEntity;
 import repopulse.server.github.graphql.dto.pullrequest.size.PullRequestSizeNode;
 import repopulse.server.github.graphql.dto.pullrequest.summary.PullRequestSummaryNode;
 import repopulse.server.repository.PullRequestRepository;
-import repopulse.server.repository.RepositoryRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -78,7 +77,7 @@ public class PullRequestPersistenceService
                 pullRequest.state(),
                 pullRequest.title(),
                 pullRequest.url(),
-                pullRequest.author().login(),
+                pullRequest.author() == null ? null : pullRequest.author().login(),
                 pullRequest.isDraft(),
                 pullRequest.updatedAt(),
                 pullRequest.createdAt(),
