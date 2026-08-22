@@ -81,8 +81,9 @@ public class PullRequestSizeAnalyticsCalculator
         }
 
 
-        Double oversizedToNonOversizedMedianMergeTimeRatio = null,
-               changedLinesToMergeTimeCorrelation = null, changedFilesToMergeTimeCorrelation = null;
+        Double oversizedMedianMergeTimeHours = null, nonOversizedMedianMergeTimeHours = null,
+               oversizedToNonOversizedMedianMergeTimeRatio = null, changedLinesToMergeTimeCorrelation = null,
+               changedFilesToMergeTimeCorrelation = null;
 
         Double medianChangedLines = Statistics.median(changedLinesCount);
         Double medianChangedFiles = Statistics.median(changedFilesCount);
@@ -113,6 +114,9 @@ public class PullRequestSizeAnalyticsCalculator
 
             oversizedToNonOversizedMedianMergeTimeRatio =
                             oversizedMedianMergeTime / nonOversizedMedianMergeTime;
+
+            nonOversizedMedianMergeTimeHours = nonOversizedMedianMergeTime / 3600;
+            oversizedMedianMergeTimeHours = oversizedMedianMergeTime / 3600;
         }
 
         if (mergedPullRequests >= 30)
@@ -147,6 +151,8 @@ public class PullRequestSizeAnalyticsCalculator
                         .toList();
 
         PullRequestSizeImpact sizeImpact = new PullRequestSizeImpact(
+                Statistics.roundToHundredth(oversizedMedianMergeTimeHours),
+                Statistics.roundToHundredth(nonOversizedMedianMergeTimeHours),
                 Statistics.roundToHundredth(oversizedToNonOversizedMedianMergeTimeRatio),
                 mergedPullRequests,
                 Statistics.roundToHundredth(changedLinesToMergeTimeCorrelation),

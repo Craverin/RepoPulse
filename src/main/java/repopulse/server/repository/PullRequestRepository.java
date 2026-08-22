@@ -8,7 +8,6 @@ import repopulse.server.entity.PullRequestEntity;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface PullRequestRepository extends JpaRepository<PullRequestEntity, Long>
@@ -40,7 +39,7 @@ public interface PullRequestRepository extends JpaRepository<PullRequestEntity, 
           )
         """)
 
-    List<PullRequestEntity> findInPeriodWithSizeInfo(@Param("repositoryId") long repositoryId,
+    List<PullRequestEntity> findInPeriodWithSizeData(@Param("repositoryId") long repositoryId,
                                                      @Param("periodStart") Instant periodStart,
                                                      @Param("periodEnd") Instant periodEnd);
 }

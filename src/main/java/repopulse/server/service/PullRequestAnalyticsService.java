@@ -103,7 +103,30 @@ public class PullRequestAnalyticsService
                 currentPeriodStart
         );
 
-        List<PullRequestInsight> insights = insightGenerator.generate(currentPeriodMetrics, previousPeriodMetrics);
+        PullRequestSizeAnalytics sizeAnalytics;
+
+        if (repository.getSizeSyncedAt() == null)
+            sizeAnalytics = null;
+
+        else
+        {
+            Instant sizePeriodStart = periodEnd.atZone(ZoneOffset.UTC).minusYears(1).toInstant();
+            Instant sizePeriodEnd = repository.getSizeSyncedAt();
+
+            List<PullRequestEntity> pullRequestsWithSizeData = pullRequestRepository.findInPeriodWithSizeData(
+                    repositoryId,
+                    sizePeriodStart,
+                    sizePeriodEnd
+            );
+
+            sizeAnalytics = sizeAnalyticsCalculator.calculate(pullRequestsWithSizeData);
+        }
+
+        List<PullRequestInsight> insights = insightGenerator.generate(
+                currentPeriodMetrics,
+                previousPeriodMetrics,
+                sizeAnalytics
+        );
 
         return new PullRequestInsightsResponse(
                 repositoryId,
@@ -126,7 +149,7 @@ public class PullRequestAnalyticsService
         Instant periodEnd = repository.getSizeSyncedAt();
         Instant periodStart = periodEnd.atZone(ZoneOffset.UTC).minusYears(1).toInstant();
 
-        List<PullRequestEntity> pullRequests = pullRequestRepository.findInPeriodWithSizeInfo(
+        List<PullRequestEntity> pullRequests = pullRequestRepository.findInPeriodWithSizeData(
                 repositoryId,
                 periodStart,
                 periodEnd

@@ -4,5 +4,6 @@ public enum InsightValueUnit
 {
     COUNT,
     HOURS,
-    PERCENT
+    PERCENT,
+    COEFFICIENT
 }

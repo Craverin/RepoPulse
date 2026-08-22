@@ -17,7 +17,8 @@ public class PullRequestPeriodMetricsCalculator
                                               Instant periodStart,
                                               Instant periodEndExclusive)
     {
-        long pullRequestsMerged = 0, pullRequestsClosedWithoutMerge = 0, openPullRequestsAtPeriodEnd = 0;
+        long merged = 0, closedWithoutMerge = 0, nonDraftOpenAtPeriodEnd = 0, staleAtPeriodEnd = 0;
+
         Double mergeRatePercent, medianMergeTimeHours;
 
         List<Integer> mergeDurationSeconds = new ArrayList<>();
@@ -26,19 +27,23 @@ public class PullRequestPeriodMetricsCalculator
         {
             Instant closedAt = pullRequest.getClosedAt();
 
-            if (closedAt == null || !closedAt.isBefore(periodEndExclusive))
+            if ((closedAt == null || !closedAt.isBefore(periodEndExclusive)
+                    && pullRequest.getCreatedAt().isBefore(periodStart)
+                    && !pullRequest.isDraft()))
             {
-                openPullRequestsAtPeriodEnd++;
-
-                if (closedAt == null)
-                    continue;
+                nonDraftOpenAtPeriodEnd++;
+                if (Duration.between(pullRequest.getUpdatedAt(), periodEndExclusive).toDays() > 30)
+                    staleAtPeriodEnd++;
             }
+
+            if (closedAt == null)
+                continue;
 
             if (!closedAt.isBefore(periodStart) && closedAt.isBefore(periodEndExclusive))
             {
                 if (pullRequest.getMergedAt() != null)
                 {
-                    pullRequestsMerged++;
+                    merged++;
                     mergeDurationSeconds.add((int) Duration.between(
                             pullRequest.getCreatedAt(),
                             closedAt
@@ -47,14 +52,14 @@ public class PullRequestPeriodMetricsCalculator
                     continue;
                 }
 
-                pullRequestsClosedWithoutMerge++;
+                closedWithoutMerge++;
             }
         }
 
-        long completed = pullRequestsMerged + pullRequestsClosedWithoutMerge;
+        long completed = merged + closedWithoutMerge;
         mergeRatePercent = completed == 0
                 ? null
-                : (double) pullRequestsMerged / completed * 100;
+                : (double) merged / completed * 100;
 
         medianMergeTimeHours = mergeDurationSeconds.isEmpty()
                 ? null
@@ -63,9 +68,13 @@ public class PullRequestPeriodMetricsCalculator
         return new PullRequestPeriodMetrics(
                 periodStart,
                 periodEndExclusive,
-                pullRequestsMerged,
-                pullRequestsClosedWithoutMerge,
-                openPullRequestsAtPeriodEnd,
+
+                pullRequests.size(),
+                merged,
+                closedWithoutMerge,
+
+                nonDraftOpenAtPeriodEnd,
+                staleAtPeriodEnd,
 
                 Statistics.roundToHundredth(mergeRatePercent),
                 Statistics.roundToHundredth(medianMergeTimeHours)

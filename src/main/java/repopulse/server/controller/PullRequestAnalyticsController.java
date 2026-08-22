@@ -32,9 +32,10 @@ public class PullRequestAnalyticsController
                                                @RequestParam(defaultValue = "12") int months)
     {
         if (months < 1)
+        {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Number of months must be greater than 0"
-            );
+                    "Number of months must be greater than 0");
+        }
 
         return analyticsService.getTrends(repositoryId, months);
     }
