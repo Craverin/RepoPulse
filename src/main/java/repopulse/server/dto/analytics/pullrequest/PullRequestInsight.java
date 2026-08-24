@@ -6,4 +6,4 @@ public record PullRequestInsight(PullRequestInsightType type,
                                  String description,
                                  Double currentValue,
                                  Double previousValue,
-                                 InsightValueUnit unit) { }
+                                 InsightValueUnit valueUnit) { }

@@ -1,0 +1,156 @@
+.repository-form-wrapper {
+  max-width: 760px;
+  margin: 42px auto 0;
+  padding: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 68%);
+  box-shadow:
+    0 16px 38px rgb(16 24 40 / 8%),
+    0 2px 6px rgb(16 24 40 / 4%);
+}
+
+.repository-form {
+  text-align: left;
+}
+
+.repository-form__control {
+  display: grid;
+  min-height: 58px;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-radius: 11px;
+  background: var(--color-surface);
+}
+
+.repository-form__icon {
+  display: grid;
+  width: 48px;
+  place-items: center;
+  color: #98a2b3;
+}
+
+.repository-form__icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.repository-form input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 14px 0 0;
+  border: 0;
+  outline: 0;
+  color: var(--color-text);
+  background: transparent;
+  font-size: 15px;
+}
+
+.repository-form input::placeholder {
+  color: #98a2b3;
+}
+
+.repository-form input:disabled {
+  cursor: wait;
+}
+
+.repository-form button {
+  display: inline-flex;
+  min-height: 44px;
+  margin-right: 7px;
+  padding: 0 19px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #2f49bc;
+  border-radius: 9px;
+  color: white;
+  background: var(--color-primary);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 12%);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.repository-form button:hover:not(:disabled) {
+  border-color: #243b9b;
+  background: var(--color-primary-hover);
+}
+
+.repository-form button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.repository-form button:disabled {
+  border-color: #9aa8e6;
+  background: #9aa8e6;
+  cursor: not-allowed;
+}
+
+.repository-form__hint,
+.repository-form__error {
+  margin: 12px 8px 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.repository-form__hint {
+  color: #7b8493;
+  text-align: center;
+}
+
+.repository-form__error {
+  color: var(--color-danger);
+}
+
+.repository-form__spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgb(255 255 255 / 45%);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: repository-form-spin 700ms linear infinite;
+}
+
+@keyframes repository-form-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .repository-form-wrapper {
+    margin-top: 34px;
+  }
+
+  .repository-form__control {
+    padding: 9px;
+    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .repository-form__icon {
+    width: 30px;
+  }
+
+  .repository-form input {
+    padding-right: 4px;
+    font-size: 14px;
+  }
+
+  .repository-form button {
+    width: 100%;
+    margin: 0;
+    grid-column: 1 / -1;
+  }
+}

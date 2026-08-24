@@ -293,7 +293,7 @@ public class PullRequestInsightGenerator
         );
 
         return new PullRequestInsight(
-                PullRequestInsightType.STALE_OPEN_PULL_REQUEST_RATE_HIGH,
+                PullRequestInsightType.STALE_PULL_REQUEST_RATE_HIGH,
                 InsightCategory.CURRENT_STATE,
                 severity,
                 description,
@@ -565,7 +565,7 @@ public class PullRequestInsightGenerator
         );
 
         return new PullRequestInsight(
-                PullRequestInsightType.STALE_OVERSIZED_OPEN_PULL_REQUESTS,
+                PullRequestInsightType.STALE_OVERSIZED_PULL_REQUESTS,
                 InsightCategory.SIZE_IMPACT,
                 severity,
                 description,
