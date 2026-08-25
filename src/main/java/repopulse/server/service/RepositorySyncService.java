@@ -61,7 +61,7 @@ public class RepositorySyncService
         {
             pullRequestSyncService.syncPullRequestSummaries(repository);
             repository.setSummarySyncedAt(Instant.now());
-            pullRequestSyncService.enrichPullRequestSizes(repository);
+            pullRequestSyncService.syncPullRequestSizes(repository);
             repository.setSizeSyncedAt(Instant.now());
         }
 

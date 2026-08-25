@@ -54,9 +54,6 @@ public class PullRequestEntity
     @Column(name = "changed_files")
     private Integer changedFiles;
 
-    @Column(name = "commits_count")
-    private Integer commitsCount;
-
     @Column(nullable = false)
     private boolean draft;
 
@@ -215,13 +212,5 @@ public class PullRequestEntity
 
     public void setChangedFiles(Integer changedFiles) {
         this.changedFiles = changedFiles;
-    }
-
-    public Integer getCommitsCount() {
-        return commitsCount;
-    }
-
-    public void setCommitsCount(Integer commitsCount) {
-        this.commitsCount = commitsCount;
     }
 }

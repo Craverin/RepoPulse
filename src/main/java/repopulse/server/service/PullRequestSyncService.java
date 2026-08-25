@@ -11,12 +11,15 @@ import repopulse.server.github.graphql.dto.pullrequest.summary.PullRequestSummar
 import repopulse.server.github.graphql.dto.pullrequest.summary.PullRequestSummaryNode;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
 public class PullRequestSyncService
 {
+    private final int PULL_REQUEST_COUNT_PER_SUMMARY_PAGE = 100;
+    private final int PULL_REQUEST_COUNT_PER_SIZE_PAGE = 75;
+
     private final GithubGraphqlClient githubClient;
     private final PullRequestPersistenceService pullRequestPersistenceService;
 
@@ -28,14 +31,36 @@ public class PullRequestSyncService
     }
 
     @Transactional
-    public void enrichPullRequestSizes(RepositoryEntity repository)
+    public void syncPullRequestSizes(RepositoryEntity repository)
     {
-        Instant syncStart = Instant.now();
+        Instant syncStartedAt = Instant.now();
+        Instant sizeSyncedAt = repository.getSizeSyncedAt();
 
-        enrichOpenPullRequestSizes(repository);
-        enrichCompletedPullRequestSizes(repository);
+        if (sizeSyncedAt == null)
+        {
+            syncPullRequestSizePages(
+                    repository,
+                    List.of(PullRequestState.OPEN),
+                    null
+            );
 
-        repository.setSizeSyncedAt(syncStart);
+            syncPullRequestSizePages(
+                    repository,
+                    List.of(PullRequestState.OPEN),
+                    syncStartedAt.atZone(ZoneOffset.UTC).minusYears(1).toInstant()
+            );
+        }
+
+        else
+        {
+            syncPullRequestSizePages(
+                    repository,
+                    List.of(PullRequestState.values()),
+                    sizeSyncedAt.minusSeconds(300)
+            );
+        }
+
+        repository.setSizeSyncedAt(syncStartedAt);
     }
 
     @Transactional
@@ -48,7 +73,7 @@ public class PullRequestSyncService
         Instant threshold;
 
         if (repository.getSummarySyncedAt() != null)
-            threshold = repository.getSummarySyncedAt().minusSeconds(180);
+            threshold = repository.getSummarySyncedAt().minusSeconds(300);
         else
             threshold = null;
 
@@ -61,25 +86,31 @@ public class PullRequestSyncService
                     repository.getOwner(),
                     repository.getName(),
                     cursor,
-                    List.of(PullRequestState.values())
+                    List.of(PullRequestState.values()),
+                    PULL_REQUEST_COUNT_PER_SUMMARY_PAGE
             );
 
             List<PullRequestSummaryNode> nodes = page.nodes();
 
-            if (threshold != null && nodes.getLast().updatedAt().isBefore(threshold))
+            if (nodes == null || nodes.isEmpty())
+                return;
+
+            if (threshold != null)
             {
                 System.out.println("FILTERING OUT PR (SIZE = " + nodes.size() + ")");
                 nodes = nodes.stream()
-                        .filter(pr -> !pr.updatedAt().isBefore(threshold))
+                        .takeWhile(pr -> !pr.updatedAt().isBefore(threshold))
                         .toList();
-
                 System.out.println("FILTERED PR (SIZE = " + nodes.size() + ")");
-                if (nodes.isEmpty())
-                    return;
             }
 
-            pullRequestPersistenceService.upsertSummaryPage(repository, page.nodes());
+            pullRequestPersistenceService.upsertSummaryPage(repository, nodes);
+
             hasNextPage = page.pageInfo().hasNextPage();
+
+            if (nodes.size() < page.nodes().size() || !hasNextPage)
+                break;
+
             cursor = page.pageInfo().endCursor();
             i++;
         }
@@ -87,8 +118,9 @@ public class PullRequestSyncService
         repository.setSummarySyncedAt(syncStart);
     }
 
-
-    private void enrichOpenPullRequestSizes(RepositoryEntity repository)
+    private void syncPullRequestSizePages(RepositoryEntity repository,
+                                          List<PullRequestState> states,
+                                          Instant threshold)
     {
         String cursor = null;
         boolean hasNextPage = true;
@@ -96,60 +128,33 @@ public class PullRequestSyncService
 
         while (hasNextPage)
         {
-            System.out.println("[SIZE-OPEN]: SENDING [" + (i * 75 + 1) + "-" + (i + 1) * 75 + "]");
+            System.out.println("[SIZE-" + states.getFirst() + "]: SENDING [" + (i * 75 + 1) + "-" + (i + 1) * 75 + "]");
             PullRequestSizeConnection page = githubClient.getPullRequestSizePage(
                     repository.getOwner(),
                     repository.getName(),
                     cursor,
-                    List.of(PullRequestState.OPEN)
-            );
-
-            pullRequestPersistenceService.upsertSizePage(page.nodes());
-            hasNextPage = page.pageInfo().hasNextPage();
-            cursor = page.pageInfo().endCursor();
-            i++;
-        }
-    }
-
-    private void enrichCompletedPullRequestSizes(RepositoryEntity repository)
-    {
-        String cursor = null;
-        boolean hasNextPage = true;
-        int i = 0;
-
-        Instant oneYearAgo = Instant.now().minus(365, ChronoUnit.DAYS);
-        Instant threshold;
-
-        if (repository.getSizeSyncedAt() != null && repository.getSizeSyncedAt().isAfter(oneYearAgo))
-            threshold = repository.getSizeSyncedAt().minusSeconds(180);
-        else
-            threshold = oneYearAgo;
-
-        while (hasNextPage)
-        {
-            System.out.println("[SIZE-COMPLETED]: SENDING [" + (i * 75 + 1) + "-" + (i + 1) * 75 + "]");
-            PullRequestSizeConnection page = githubClient.getPullRequestSizePage(
-                    repository.getOwner(),
-                    repository.getName(),
-                    cursor,
-                    List.of(PullRequestState.CLOSED, PullRequestState.MERGED)
+                    states,
+                    PULL_REQUEST_COUNT_PER_SIZE_PAGE
             );
 
             List<PullRequestSizeNode> nodes = page.nodes();
-            if (nodes.getLast().updatedAt().isBefore(threshold))
+
+            if (threshold != null)
             {
                 System.out.println("FILTERING OUT PR (SIZE = " + nodes.size() + ")");
                 nodes = nodes.stream()
-                        .filter(pr -> !pr.updatedAt().isBefore(threshold))
+                        .takeWhile(pr -> !pr.updatedAt().isBefore(threshold))
                         .toList();
-
                 System.out.println("FILTERED PR (SIZE = " + nodes.size() + ")");
-                if (nodes.isEmpty())
-                    return;
             }
 
-            pullRequestPersistenceService.upsertSizePage(page.nodes());
+            pullRequestPersistenceService.upsertSizePage(nodes);
+
             hasNextPage = page.pageInfo().hasNextPage();
+
+            if (nodes.size() < page.nodes().size() || !hasNextPage)
+                break;
+
             cursor = page.pageInfo().endCursor();
             i++;
         }

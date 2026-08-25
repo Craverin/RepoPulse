@@ -27,6 +27,9 @@ public class PullRequestPersistenceService
     public void upsertSummaryPage(RepositoryEntity repositoryEntity,
                                   List<PullRequestSummaryNode> pullRequests)
     {
+        if (pullRequests.isEmpty())
+            return;
+
         List<Long> githubIds = pullRequests.stream()
                 .map(pr -> Long.parseLong(pr.fullDatabaseId()))
                 .toList();
@@ -50,6 +53,9 @@ public class PullRequestPersistenceService
 
     public void upsertSizePage(List<PullRequestSizeNode> pullRequests)
     {
+        if (pullRequests.isEmpty())
+            return;
+
         List<Long> githubIds = pullRequests.stream()
                 .map(pr -> Long.parseLong(pr.fullDatabaseId()))
                 .toList();
@@ -103,7 +109,6 @@ public class PullRequestPersistenceService
         pullRequestEntity.setAdditions(pullRequest.additions());
         pullRequestEntity.setDeletions(pullRequest.deletions());
         pullRequestEntity.setChangedFiles(pullRequest.changedFiles());
-        pullRequestEntity.setCommitsCount(pullRequest.commits().totalCount());
         pullRequestEntity.setUpdatedAt(pullRequest.updatedAt());
     }
 }

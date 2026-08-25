@@ -28,13 +28,14 @@ public class GithubGraphqlClient
                 $name: String!,
                 $cursor: String,
                 $states: [PullRequestState!]!
+                $pageSize: Int!
             )
             {
                 repository(owner: $owner, name: $name)
                 {
                     pullRequests(
-                        first: 100,
-                        after: $cursor,
+                        first: $pageSize
+                        after: $cursor
                         states: $states
                         orderBy:
                         {
@@ -81,13 +82,14 @@ public class GithubGraphqlClient
                 $name: String!,
                 $cursor: String,
                 $states: [PullRequestState!]!
+                $pageSize: Int!
             )
             {
                 repository(owner: $owner, name: $name)
                 {
                     pullRequests(
-                        first: 75,
-                        after: $cursor,
+                        first: $pageSize
+                        after: $cursor
                         states: $states
                         orderBy:
                         {
@@ -104,11 +106,6 @@ public class GithubGraphqlClient
                             additions
                             deletions
                             changedFiles
-            
-                            commits(first: 1)
-                            {
-                                totalCount
-                            }
                         }
             
                         pageInfo
@@ -136,11 +133,12 @@ public class GithubGraphqlClient
     public PullRequestSummaryConnection getPullRequestSummaryPage(String owner,
                                                                   String repositoryName,
                                                                   String cursor,
-                                                                  List<PullRequestState> states)
+                                                                  List<PullRequestState> states,
+                                                                  int pageSize)
     {
         GithubGraphqlRequest<PullRequestPageVariables> request = new GithubGraphqlRequest<>(
                 PULL_REQUESTS_SUMMARY_QUERY,
-                new PullRequestPageVariables(owner, repositoryName, cursor, states)
+                new PullRequestPageVariables(owner, repositoryName, cursor, states, pageSize)
         );
 
 
@@ -156,11 +154,12 @@ public class GithubGraphqlClient
     public PullRequestSizeConnection getPullRequestSizePage(String owner,
                                                             String repositoryName,
                                                             String cursor,
-                                                            List<PullRequestState> states)
+                                                            List<PullRequestState> states,
+                                                            int pageSize)
     {
         GithubGraphqlRequest<PullRequestPageVariables> request = new GithubGraphqlRequest<>(
                 PULL_REQUESTS_SIZE_QUERY,
-                new PullRequestPageVariables(owner, repositoryName, cursor, states)
+                new PullRequestPageVariables(owner, repositoryName, cursor, states, pageSize)
         );
 
         PullRequestSizePageData data = executeGraphql(
