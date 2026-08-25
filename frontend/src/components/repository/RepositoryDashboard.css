@@ -1,0 +1,239 @@
+.repository-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.dashboard-header__path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #475467;
+  font-size: clamp(24px, 4vw, 32px);
+  letter-spacing: -0.035em;
+}
+
+.dashboard-header__path strong {
+  color: #101828;
+  font-weight: 680;
+}
+
+.dashboard-header__meta {
+  display: flex;
+  margin-top: 10px;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.dashboard-header__meta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #475467;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dashboard-header__meta a:hover {
+  color: var(--color-primary);
+}
+
+.dashboard-header__meta svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.dashboard-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-button {
+  display: inline-flex;
+  min-height: 40px;
+  padding: 0 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  transition:
+    border-color 130ms ease,
+    background 130ms ease,
+    transform 130ms ease;
+}
+
+.dashboard-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.dashboard-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.dashboard-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.dashboard-button__spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgb(255 255 255 / 45%);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: dashboard-button-spin 700ms linear infinite;
+}
+
+@keyframes dashboard-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dashboard-button--secondary {
+  border: 1px solid var(--color-border-strong);
+  color: #344054;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-button--secondary:hover {
+  border-color: #b5bcc7;
+  background: #f9fafb;
+}
+
+.dashboard-button--primary {
+  border: 1px solid #2f49bc;
+  color: white;
+  background: var(--color-primary);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 10%);
+}
+
+.dashboard-button--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.dashboard-error {
+  display: flex;
+  padding: 12px 14px;
+  align-items: baseline;
+  gap: 8px;
+  border: 1px solid #fecdca;
+  border-radius: 9px;
+  color: #912018;
+  background: var(--color-danger-soft);
+  font-size: 13px;
+}
+
+.dashboard-navigation {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-navigation button {
+  position: relative;
+  padding: 0 1px 13px;
+  border: 0;
+  color: var(--color-muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.dashboard-navigation button:hover {
+  color: #344054;
+}
+
+.dashboard-navigation .dashboard-navigation__item--active {
+  color: var(--color-primary);
+}
+
+.dashboard-navigation__item--active::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  border-radius: 999px 999px 0 0;
+  background: var(--color-primary);
+  content: "";
+}
+
+.dashboard-section-loading {
+  min-height: 520px;
+  border-radius: 11px;
+  background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 45%, #eef0f3 65%);
+  background-size: 240% 100%;
+  animation: dashboard-section-shimmer 1.35s ease infinite;
+}
+
+@keyframes dashboard-section-shimmer {
+  to {
+    background-position: -140% 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-header {
+    flex-direction: column;
+  }
+
+  .dashboard-header__actions {
+    width: 100%;
+  }
+
+  .dashboard-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 540px) {
+  .dashboard-header__path {
+    flex-wrap: wrap;
+    font-size: 26px;
+  }
+
+  .dashboard-header__meta {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-header__actions,
+  .dashboard-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-button,
+  .dashboard-section-loading {
+    transition: none;
+    animation: none;
+  }
+}

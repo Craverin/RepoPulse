@@ -1,7 +1,7 @@
 import { useState } from "react"
 import type { PullRequestAnalyticsResponse } from "../api/pullRequestAnalyticsApi"
 import { analyzeRepository, syncRepository } from "../api/repositoriesApi"
-import { PullRequestOverview } from "../components/analytics/PullRequestOverview"
+import { RepositoryDashboard } from "../components/repository/RepositoryDashboard.tsx"
 import { RepositoryAnalyzeForm } from "../components/repository/RepositoryAnalyzeForm"
 import "./HomePage.css"
 
@@ -33,14 +33,10 @@ export function HomePage() {
     setError(null)
     setIsAnalyzing(true)
 
-    try {
-      const response = await analyzeRepository(repositoryUrl)
-      setOverview(response)
-    } catch (error) {
-      setError(getErrorMessage(error))
-    } finally {
-      setIsAnalyzing(false)
-    }
+    await analyzeRepository(repositoryUrl)
+      .then((resp) => setOverview(resp))
+      .catch((error) => setError(getErrorMessage(error)))
+      .finally(() => setIsAnalyzing(false))
   }
 
   async function handleSync() {
@@ -49,14 +45,10 @@ export function HomePage() {
     setError(null)
     setIsSyncing(true)
 
-    try {
-      const response = await syncRepository(overview.htmlUrl)
-      setOverview(response)
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError))
-    } finally {
-      setIsSyncing(false)
-    }
+    await syncRepository(overview.htmlUrl)
+      .then((resp) => setOverview(resp))
+      .catch((error) => getErrorMessage(error))
+      .finally(() => setIsSyncing(false))
   }
 
   function handleAnalyzeAnother() {
@@ -109,7 +101,7 @@ export function HomePage() {
         </main>
       ) : (
         <main className="home-page__dashboard">
-          <PullRequestOverview
+          <RepositoryDashboard
             data={overview}
             error={error}
             isSyncing={isSyncing}

@@ -12,11 +12,11 @@ public final class Statistics
 
     public static double median(List<Integer> sample)
     {
+        if (sample.isEmpty())
+            throw new IllegalArgumentException("Sample is empty");
+
         Collections.sort(sample);
         int size = sample.size();
-
-        if (size == 0)
-            throw new IllegalArgumentException();
 
         if (size % 2 != 0)
            return (double) sample.get(size / 2);

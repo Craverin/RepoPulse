@@ -32,6 +32,7 @@ export function RepositoryAnalyzeForm({ isLoading, error, onSubmit }: Repository
           </span>
 
           <input
+            name="repository-url"
             type="url"
             value={repositoryUrl}
             onChange={(event) => setRepositoryUrl(event.target.value)}

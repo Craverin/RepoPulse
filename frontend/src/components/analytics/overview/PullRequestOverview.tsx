@@ -1,12 +1,8 @@
-import type { PullRequestAnalyticsResponse } from "../../api/pullRequestAnalyticsApi.ts"
+import type { PullRequestAnalyticsResponse } from "../../../api/pullRequestAnalyticsApi.ts"
 import "./PullRequestOverview.css"
 
 interface PullRequestOverviewProps {
   data: PullRequestAnalyticsResponse
-  error: string | null
-  isSyncing: boolean
-  onAnalyzeAnother: () => void
-  onSync: () => Promise<void>
 }
 
 interface MetricCardProps {
@@ -30,13 +26,8 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   timeStyle: "short"
 })
 
-export function PullRequestOverview({
-  data,
-  error,
-  isSyncing,
-  onAnalyzeAnother,
-  onSync
-}: PullRequestOverviewProps) {
+export function PullRequestOverview({ data }: PullRequestOverviewProps) {
+
   const analytics = data.pullRequestAnalytics
   const completedPullRequests =
     analytics.mergedPullRequests + analytics.closedWithoutMergePullRequests
@@ -44,63 +35,7 @@ export function PullRequestOverview({
   const stalePullRequests = analytics.staleOpenPullRequests + analytics.veryStaleOpenPullRequests
 
   return (
-    <div className="pull-request-overview">
-      <section className="overview-header">
-        <div>
-          <div className="overview-header__path">
-            <span>{data.owner}</span>
-            <span aria-hidden="true">/</span>
-            <strong>{data.name}</strong>
-          </div>
-
-          <div className="overview-header__meta">
-            <a href={data.htmlUrl} target="_blank">
-              View on GitHub
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M7 13 13 7m-5 0h5v5" />
-              </svg>
-            </a>
-            <span aria-hidden="true">·</span>
-            <span>
-              {"Synced "}
-              <time dateTime={data.dataLastSyncedAt}>{formatSyncDate(data.dataLastSyncedAt)}</time>
-            </span>
-          </div>
-        </div>
-
-        <div className="overview-header__actions">
-          <button className="overview-button overview-button--secondary" onClick={onAnalyzeAnother}>
-            Analyze another
-          </button>
-          <button
-            className="overview-button overview-button--primary"
-            onClick={() => onSync()}
-            disabled={isSyncing}
-          >
-            {isSyncing ? (
-              <>
-                <span className="overview-button__spinner" aria-hidden="true" />
-                Syncing
-              </>
-            ) : (
-              <>
-                <svg viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M16 6V2m0 0h-4m4 0-3 3a6 6 0 1 0 1.5 6" />
-                </svg>
-                Sync now
-              </>
-            )}
-          </button>
-        </div>
-      </section>
-
-      {error !== null && (
-        <div className="overview-error">
-          <strong>Synchronization failed.</strong>
-          <span>{error}</span>
-        </div>
-      )}
-
+    <div>
       <section className="overview-section">
         <div className="overview-section__heading">
           <div>

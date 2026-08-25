@@ -5,7 +5,7 @@ interface RequestOptions {
   body?: unknown
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}){
   const { method = "GET", body = null } = options
   const headers: Record<string, string> = {}
 

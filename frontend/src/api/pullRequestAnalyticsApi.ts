@@ -9,7 +9,7 @@ export interface PullRequestAnalyticsResponse {
   pullRequestAnalytics: PullRequestAnalytics
 }
 
-interface PullRequestAnalytics {
+export interface PullRequestAnalytics {
   totalPullRequests: number
   openPullRequests: number
   openDraftPullRequests: number
@@ -34,38 +34,41 @@ interface PullRequestAnalytics {
   stalestPullRequests: StalePullRequestResponse[]
 }
 
-interface StalePullRequestResponse {
+export interface StalePullRequestResponse {
   number: number
   title: string
   htmlUrl: string
-  authorLogin: string
+  authorLogin: string | null
   inactiveDays: number
 }
 
 // Trends
 
-interface PullRequestTrendsResponse {
+export interface PullRequestTrendsResponse {
   repositoryId: number
   dataLastSyncedAt: string
   monthlyMetrics: PullRequestMonthlyMetrics[]
 }
 
-interface PullRequestMonthlyMetrics {
+export interface PullRequestMonthlyMetrics {
   month: string
   pullRequestsCreated: number
   pullRequestsMerged: number
   pullRequestsClosedWithoutMerge: number
   openPullRequestsAtMonthEnd: number
+  mergeRatePercent: number | null
   medianMergeTimeHours: number | null
 }
 
 // Insights
 
-type InsightSeverity = "INFO" | "WARNING" | "CRITICAL"
+export type InsightSeverity = "INFO" | "WARNING" | "CRITICAL"
 
-type InsightValueUnit = "COUNT" | "HOURS" | "PERCENT" | "COEFFICIENT"
+export type InsightCategory = "CURRENT_STATE" | "PERIOD_COMPARISON" | "SIZE_IMPACT"
 
-type PullRequestInsightType =
+export type InsightValueUnit = "COUNT" | "HOURS" | "PERCENT" | "COEFFICIENT"
+
+export type PullRequestInsightType =
   | "BACKLOG_GROWING"
   | "MEDIAN_MERGE_TIME_HIGH"
   | "MEDIAN_MERGE_TIME_INCREASED"
@@ -75,18 +78,19 @@ type PullRequestInsightType =
   | "OVERSIZED_PULL_REQUEST_SHARE_HIGH"
   | "OVERSIZED_MERGE_TIME_HIGHER"
   | "OVERSIZED_MERGE_RATE_LOWER"
-  | "SIZE_MERGE_TIME_ASSOCIATION"
+  | "SIZE_ASSOCIATED_WITH_LONGER_MERGE_TIME"
   | "STALE_PULL_REQUEST_RATE_HIGH"
   | "STALE_OVERSIZED_PULL_REQUESTS"
 
-interface PullRequestInsightsResponse {
+export interface PullRequestInsightsResponse {
   repositoryId: number
   dataLastSyncedAt: string
-  insights: PullRequestInsight[]
+  pullRequestInsights: PullRequestInsight[]
 }
 
-interface PullRequestInsight {
+export interface PullRequestInsight {
   type: PullRequestInsightType
+  category: InsightCategory
   severity: InsightSeverity
   description: string
   currentValue: number | null
@@ -96,24 +100,27 @@ interface PullRequestInsight {
 
 // Size analytics
 
-type PullRequestSizeCategory = "SMALL" | "MEDIUM" | "LARGE" | "ENORMOUS"
+export type PullRequestSizeCategory = "SMALL" | "MEDIUM" | "LARGE" | "ENORMOUS"
 
-interface PullRequestSizeAnalyticsResponse {
+export interface PullRequestSizeAnalyticsResponse {
   repositoryId: number
+  owner: string
+  name: string
+  htmlUrl: string
   periodStart: string
   periodEnd: string
   dataLastSyncedAt: string
   analytics: PullRequestSizeAnalytics
 }
 
-interface PullRequestSizeAnalytics {
+export interface PullRequestSizeAnalytics {
   sizeStatistics: PullRequestSizeStatistics
   categoryMetrics: PullRequestSizeCategoryMetrics[]
   sizeImpact: PullRequestSizeImpact
   oversizedOpenPullRequests: OversizedOpenPullRequest[]
 }
 
-interface PullRequestSizeStatistics {
+export interface PullRequestSizeStatistics {
   completedPullRequests: number
   medianChangedLines: number | null
   medianChangedFiles: number | null
@@ -121,7 +128,7 @@ interface PullRequestSizeStatistics {
   p90ChangedFiles: number | null
 }
 
-interface PullRequestSizeCategoryMetrics {
+export interface PullRequestSizeCategoryMetrics {
   category: PullRequestSizeCategory
 
   completedPullRequests: number
@@ -137,18 +144,20 @@ interface PullRequestSizeCategoryMetrics {
   staleOpenPullRequestRatePercent: number | null
 }
 
-interface PullRequestSizeImpact {
+export interface PullRequestSizeImpact {
+  oversizedMedianMergeTimeHours: number | null
+  nonOversizedMedianMergeTimeHours: number | null
   oversizedToNonOversizedMedianMergeTimeRatio: number | null
-  correlationSampleSize: number | null
-  changedLinesToMergeTimeCorrelation: number | null
-  changedFilesToMergeTimeCorrelation: number | null
+  correlationSampleSize: number
+  changedLinesToMergeTimeSpearmanCorrelation: number | null
+  changedFilesToMergeTimeSpearmanCorrelation: number | null
 }
 
-interface OversizedOpenPullRequest {
+export interface OversizedOpenPullRequest {
   number: number
   title: string
   htmlUrl: string
-  authorLogin: string
+  authorLogin: string | null
   draft: boolean
   changedLines: number
   changedFiles: number
