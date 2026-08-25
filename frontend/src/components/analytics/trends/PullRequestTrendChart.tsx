@@ -142,7 +142,7 @@ export function PullRequestTrendChart({ metrics }: PullRequestTrendChartProps) {
 
       {hasValues ? (
         <div className="trends-chart">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer>
             <LineChart data={metrics} margin={{ top: 12, right: 12, bottom: 0, left: -10}}>
               <CartesianGrid vertical={false} stroke="#eaecf0" strokeDasharray="3 3" />
               <XAxis

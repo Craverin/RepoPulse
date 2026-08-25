@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
-import { getPullRequestInsights, getPullRequestTrends } from "../../../api/pullRequestAnalyticsApi"
+import { getPullRequestInsights, getPullRequestTrends } from "../../../api/pullRequestAnalyticsApi.ts"
 import type {
   PullRequestInsight,
   PullRequestInsightsResponse,
   PullRequestMonthlyMetrics,
   PullRequestTrendsResponse
-} from "../../../api/pullRequestAnalyticsApi"
+} from "../../../api/pullRequestAnalyticsApi.ts"
+
 import { PullRequestTrendChart } from "./PullRequestTrendChart.tsx"
 import "./PullRequestTrends.css"
+import { insightTitles } from "../insights/pullRequestInsightPresentation.ts"
 
 interface PullRequestTrendsProps {
   repositoryId: number
@@ -26,21 +28,6 @@ const monthFormatter = new Intl.DateTimeFormat("en", {
   year: "numeric",
   timeZone: "UTC"
 })
-
-const insightTitles: Record<PullRequestInsight["type"], string> = {
-  BACKLOG_GROWING: "Backlog is growing",
-  MEDIAN_MERGE_TIME_HIGH: "Merge time is high",
-  MEDIAN_MERGE_TIME_INCREASED: "Merge time increased",
-  MERGE_RATE_LOW: "Merge rate is low",
-  MERGE_RATE_DROPPED: "Merge rate dropped",
-  MERGE_THROUGHPUT_DROPPED: "Merge throughput dropped",
-  OVERSIZED_PULL_REQUEST_SHARE_HIGH: "Too many oversized pull requests",
-  OVERSIZED_MERGE_TIME_HIGHER: "Oversized pull requests merge slower",
-  OVERSIZED_MERGE_RATE_LOWER: "Oversized pull requests merge less often",
-  SIZE_ASSOCIATED_WITH_LONGER_MERGE_TIME: "Size is linked to longer merge time",
-  STALE_PULL_REQUEST_RATE_HIGH: "Stale pull request rate is high",
-  STALE_OVERSIZED_PULL_REQUESTS: "Oversized pull requests need attention"
-}
 
 const availablePeriods = [6, 12, 24]
 
@@ -288,7 +275,7 @@ function InsightItem({ insight }: { insight: PullRequestInsight }) {
     <article className={`trend-insight trend-insight--${insight.severity.toLowerCase()}`}>
       <div>
         <span>
-          {formatInsightCategory(insight.category)} · {formatInsightSeverity(insight.severity)}
+          {formatInsightCategory(insight.category)} · {insight.severity}
         </span>
         <strong>{insightTitles[insight.type]}</strong>
       </div>
@@ -423,12 +410,6 @@ function formatMonth(value: string) {
 function formatInsightCategory(category: PullRequestInsight["category"]) {
   if (category === "CURRENT_STATE") return "Current state"
   if (category === "PERIOD_COMPARISON") return "Period change"
-
-  return "Size impact"
-}
-
-function formatInsightSeverity(severity: PullRequestInsight["severity"]) {
-  return severity.charAt(0) + severity.slice(1).toLowerCase()
 }
 
 function getErrorMessage(error: unknown, fallback: string) {

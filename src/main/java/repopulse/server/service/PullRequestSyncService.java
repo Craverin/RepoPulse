@@ -46,7 +46,7 @@ public class PullRequestSyncService
 
             syncPullRequestSizePages(
                     repository,
-                    List.of(PullRequestState.OPEN),
+                    List.of(PullRequestState.CLOSED, PullRequestState.MERGED),
                     syncStartedAt.atZone(ZoneOffset.UTC).minusYears(1).toInstant()
             );
         }

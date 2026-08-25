@@ -1,10 +1,14 @@
 import { lazy, Suspense, useState } from "react"
-import type { PullRequestAnalyticsResponse } from "../../api/pullRequestAnalyticsApi"
+import type { PullRequestAnalyticsResponse } from "../../api/pullRequestAnalyticsApi.ts"
 import { PullRequestOverview } from "../analytics/overview/PullRequestOverview.tsx"
 import "./RepositoryDashboard.css"
 
 const PullRequestTrends = lazy(
-  () => import("../analytics/trends/PullRequestTrends")
+  () => import("../analytics/trends/PullRequestTrends.tsx")
+)
+
+const PullRequestSizeAnalytics = lazy (
+  () => import("../analytics/size/PullRequestSizeAnalytics.tsx")
 )
 
 interface RepositoryDashboardProps {
@@ -15,8 +19,12 @@ interface RepositoryDashboardProps {
   onSync: () => Promise<void>
 }
 
-type DashboardSection = "overview" | "trends"
-const sections: DashboardSection[] = ["overview", "trends"]
+type DashboardSection = "overview" | "trends" | "size-impact"
+const sections: { id: DashboardSection; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "trends", label: "Trends" },
+  { id: "size-impact", label: "Size impact" }
+]
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
@@ -25,12 +33,12 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 
 
 export function RepositoryDashboard({
-  data,
-  error,
-  isSyncing,
-  onAnalyzeAnother,
-  onSync
-}: RepositoryDashboardProps) {
+                                      data,
+                                      error,
+                                      isSyncing,
+                                      onAnalyzeAnother,
+                                      onSync
+                                    }: RepositoryDashboardProps) {
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview")
 
   return (
@@ -97,12 +105,12 @@ export function RepositoryDashboard({
       <nav className="dashboard-navigation">
         {sections.map((section) => (
           <button
-            className={activeSection === section ? "dashboard-navigation__item--active" : ""}
-            key={section}
+            className={activeSection === section.id ? "dashboard-navigation__item--active" : ""}
+            key={section.id}
             type="button"
-            onClick={() => setActiveSection(section)}
+            onClick={() => setActiveSection(section.id)}
           >
-            {capitalize(section)}
+            {section.label}
           </button>
         ))}
       </nav>
@@ -111,17 +119,17 @@ export function RepositoryDashboard({
         <PullRequestOverview data={data} />
       ) : (
         <Suspense fallback={<div className="dashboard-section-loading" />}>
-          <PullRequestTrends repositoryId={data.repositoryId} />
+          {activeSection === "trends" ? (
+              <PullRequestTrends repositoryId={data.repositoryId} />
+            ) : (
+              <PullRequestSizeAnalytics repositoryId={data.repositoryId} />
+          )}
         </Suspense>
       )}
     </div>
   )
 }
 
-function capitalize(str: string) {
-  return str[0].toUpperCase() + str.slice(1);
-}
-
-function formatSyncDate(value: string) {
+function formatSyncDate(value: string): string {
   return dateFormatter.format(new Date(value))
 }

@@ -1,9 +1,6 @@
 package repopulse.server.analytics.statistics;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public final class Statistics
@@ -15,13 +12,14 @@ public final class Statistics
         if (sample.isEmpty())
             throw new IllegalArgumentException("Sample is empty");
 
-        Collections.sort(sample);
-        int size = sample.size();
+        List<Integer> sortedSample = sample.stream().sorted().toList();
+
+        int size = sortedSample.size();
 
         if (size % 2 != 0)
-           return (double) sample.get(size / 2);
+           return (double) sortedSample.get(size / 2);
 
-        return (sample.get(size / 2 - 1) + sample.get(size / 2)) / 2d;
+        return (sortedSample.get(size / 2 - 1) + sortedSample.get(size / 2)) / 2d;
     }
 
     public static Double roundToHundredth(Double number)
