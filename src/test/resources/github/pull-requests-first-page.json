@@ -1,0 +1,30 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "totalCount": 2,
+        "nodes": [
+          {
+            "fullDatabaseId": "201",
+            "number": 2,
+            "state": "OPEN",
+            "title": "Add analytics",
+            "url": "https://github.com/someuser/somerepo/pull/2",
+            "author": {
+              "login": "bob"
+            },
+            "isDraft": false,
+            "createdAt": "CREATED_AT",
+            "updatedAt": "UPDATED_AT",
+            "closedAt": null,
+            "mergedAt": null
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": true,
+          "endCursor": "summary-page-2"
+        }
+      }
+    }
+  }
+}

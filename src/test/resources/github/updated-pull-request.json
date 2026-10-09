@@ -1,0 +1,30 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "totalCount": 1,
+        "nodes": [
+          {
+            "fullDatabaseId": "200",
+            "number": 1,
+            "state": "MERGED",
+            "title": "Add dashboard and filters",
+            "url": "https://github.com/someuser/somerepo/pull/1",
+            "author": {
+              "login": "alice"
+            },
+            "isDraft": false,
+            "createdAt": "CREATED_AT",
+            "updatedAt": "UPDATED_AT",
+            "closedAt": "CLOSED_AT",
+            "mergedAt": "MERGED_AT"
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": null
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "totalCount": 1,
+        "nodes": [
+          {
+            "fullDatabaseId": "200",
+            "number": 1,
+            "state": "OPEN",
+            "title": "Add dashboard",
+            "url": "https://github.com/someuser/somerepo/pull/1",
+            "author": {
+              "login": "alice"
+            },
+            "isDraft": false,
+            "createdAt": "CREATED_AT",
+            "updatedAt": "CREATED_AT",
+            "closedAt": null,
+            "mergedAt": null
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": null
+        }
+      }
+    }
+  }
+}

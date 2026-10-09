@@ -1,0 +1,21 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "nodes": [
+          {
+            "fullDatabaseId": "200",
+            "updatedAt": "UPDATED_AT",
+            "additions": 75,
+            "deletions": 15,
+            "changedFiles": 3
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": null
+        }
+      }
+    }
+  }
+}

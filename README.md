@@ -114,3 +114,13 @@ _Merge-time comparison, Spearman correlations, category breakdown, and oversized
 - Recharts
 - Prettier
 
+## Tests
+
+Integration tests require Java 21 and a running Docker engine. Run them on Windows with:
+
+```powershell
+.\mvnw.cmd test
+```
+
+The tests cover initial repository analysis, forced synchronization, reuse of fresh data,
+refreshing expired data, and GitHub pagination.

@@ -1,0 +1,9 @@
+{
+  "id": 100,
+  "name": "somerepo",
+  "owner": {
+    "login": "someuser"
+  },
+  "html_url": "https://github.com/someuser/somerepo",
+  "default_branch": "main"
+}
